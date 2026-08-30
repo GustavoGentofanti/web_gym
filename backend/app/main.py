@@ -26,6 +26,7 @@ app.add_middleware(
 )
 
 
+
 @app.on_event("startup")
 def create_db_and_tables():
     Base.metadata.create_all(bind=engine)
