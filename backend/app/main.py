@@ -19,7 +19,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[str(origin).rstrip("/") for origin in settings.cors_origins],
+    allow_origins=[
+        "https://gustavogentofanti.github.io",
+        "http://localhost:5500",
+        "http://localhost:8080"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
