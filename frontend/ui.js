@@ -165,102 +165,377 @@ function openExerciseModal() {
   });
 }
 
+function createSetEntry(type = 'Trabalho', reps = 8, load = 'Bodyweight', rest = 60) {
+  return {
+    id: `${type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    type,
+    reps,
+    load,
+    rest,
+  };
+}
+
+function summarizeExerciseSeries(series = []) {
+  const summary = {
+    Aquecimento: 0,
+    Preparação: 0,
+    Trabalho: 0,
+  };
+  const workReps = [];
+  let restSeconds = 90;
+
+  series.forEach((entry) => {
+    if (entry.type in summary) {
+      summary[entry.type] += 1;
+    }
+
+    if (entry.type === 'Trabalho') {
+      workReps.push(Number(entry.reps || 0));
+      if (entry.rest) {
+        restSeconds = Number(entry.rest) || restSeconds;
+      }
+    }
+  });
+
+  return {
+    warmup_sets: summary.Aquecimento,
+    prep_sets: summary.Preparação,
+    target_sets: summary.Trabalho,
+    target_reps_min: workReps.length ? Math.min(...workReps) : 8,
+    target_reps_max: workReps.length ? Math.max(...workReps) : 12,
+    rest_seconds: restSeconds,
+  };
+}
+
+function hydrateExerciseDraft(item) {
+  const legacySeries = [];
+  const warmupCount = Number(item.warmup_sets || 0);
+  const prepCount = Number(item.prep_sets || 0);
+  const workCount = Math.max(Number(item.target_sets || 0), 1);
+  const repsMin = Number(item.target_reps_min || 8);
+  const repsMax = Number(item.target_reps_max || 12);
+  const restSeconds = Number(item.rest_seconds || 90);
+
+  for (let index = 0; index < warmupCount; index += 1) {
+    legacySeries.push(createSetEntry('Aquecimento', 12, 'Bodyweight', 30));
+  }
+
+  for (let index = 0; index < prepCount; index += 1) {
+    legacySeries.push(createSetEntry('Preparação', 8, 'Bodyweight', 45));
+  }
+
+  for (let index = 0; index < workCount; index += 1) {
+    legacySeries.push(createSetEntry('Trabalho', Math.max(repsMin, repsMax === repsMin ? repsMin : repsMin + (index % 2)), '10kg', restSeconds));
+  }
+
+  return {
+    ...item,
+    exercise_name: item.exercise_name || 'Exercício',
+    muscle_group: item.muscle_group || 'Músculo',
+    series: Array.isArray(item.series) && item.series.length ? item.series : legacySeries,
+  };
+}
+
 function renderRoutineBuilderModal(routineToEdit = null) {
   const modalRoot = document.getElementById('modal-root');
   if (!modalRoot) return;
 
-  const selectedExercises = (routineToEdit?.exercises || []).map((item) => ({
+  const selectedExercises = (routineToEdit?.exercises || []).map((item) => hydrateExerciseDraft({
     ...item,
-    warmup_sets: Number(item.warmup_sets || 0),
-    prep_sets: Number(item.prep_sets || 0),
     exercise_name: item.exercise_name || AppState.exercises.find((exercise) => exercise.id === item.exercise_id)?.name || 'Exercício',
+    muscle_group: AppState.exercises.find((exercise) => exercise.id === item.exercise_id)?.muscle_group || 'Músculo',
   }));
+
   const availableExercises = AppState.exercises.length ? AppState.exercises : [];
+  let selectedExerciseId = availableExercises[0]?.id || '';
+  let searchQuery = '';
 
-  modalRoot.innerHTML = `
-    <div class="modal-backdrop">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <h3>${routineToEdit ? 'Editar ficha' : 'Nova ficha'}</h3>
-          <button class="ghost-btn" data-close-modal>Fechar</button>
-        </div>
-        <div class="field">
-          <label>Nome da ficha</label>
-          <input id="routine-name-input" type="text" placeholder="Treino A" value="${routineToEdit?.name || ''}" />
-        </div>
-
-        <div class="field">
-          <label>Exercício</label>
-          <select id="routine-exercise-select">
-            ${availableExercises.length ? availableExercises.map((exercise) => `<option value="${exercise.id}">${exercise.name} (${exercise.muscle_group})</option>`).join('') : '<option value="">Cadastre um exercício primeiro</option>'}
-          </select>
-        </div>
-
-        <div class="small-grid">
-          <div class="field">
-            <label>Aquecimento (A)</label>
-            <input id="routine-warmup-input" type="number" min="0" max="10" value="0" />
-          </div>
-          <div class="field">
-            <label>Preparação (P)</label>
-            <input id="routine-prep-input" type="number" min="0" max="10" value="0" />
-          </div>
-          <div class="field">
-            <label>Trabalho (T)</label>
-            <input id="routine-sets-input" type="number" min="1" value="3" />
-          </div>
-          <div class="field">
-            <label>Reps min</label>
-            <input id="routine-reps-min-input" type="number" min="1" value="8" />
-          </div>
-          <div class="field">
-            <label>Reps max</label>
-            <input id="routine-reps-max-input" type="number" min="1" value="12" />
-          </div>
-          <div class="field">
-            <label>Descanso</label>
-            <input id="routine-rest-input" type="number" min="0" value="90" />
-          </div>
-        </div>
-
-        <div class="btn-row" style="margin-top:10px; justify-content:flex-start;">
-          <button class="secondary-btn" id="add-routine-item-btn">Adicionar exercício</button>
-        </div>
-
-        <div id="routine-selected-items" style="margin-top:16px; display:flex; flex-direction:column; gap:8px;"></div>
-
-        <div class="btn-row" style="margin-top:16px; justify-content:flex-end;">
-          <button class="secondary-btn" data-close-modal>Cancelar</button>
-          <button class="primary-btn" id="save-routine-btn">${routineToEdit ? 'Salvar alterações' : 'Salvar ficha'}</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const updateSelectedList = () => {
+  const renderExerciseManager = () => {
     const container = document.getElementById('routine-selected-items');
     if (!container) return;
+
     if (!selectedExercises.length) {
       container.innerHTML = '<div class="empty-state">Nenhum exercício adicionado.</div>';
       return;
     }
 
-    container.innerHTML = selectedExercises.map((item, index) => `
-      <div class="list-item">
-        <span>${item.exercise_name}</span>
-        <strong>${item.warmup_sets}A + ${item.prep_sets}P + ${item.target_sets}T • ${item.target_reps_min}-${item.target_reps_max}</strong>
-        <button class="icon-btn" data-remove-routine-item="${index}">✕</button>
-      </div>
-    `).join('');
+    container.innerHTML = selectedExercises.map((item, index) => {
+      const summary = summarizeExerciseSeries(item.series);
+      return `
+        <div class="exercise-manager-card" data-exercise-index="${index}">
+          <div class="exercise-manager-header">
+            <div class="exercise-info">
+              <span class="muscle-icon">${item.muscle_group?.toLowerCase().includes('abdômen') || item.muscle_group?.toLowerCase().includes('abdomen') ? '🏋️' : '💪'}</span>
+              <div>
+                <strong>${item.exercise_name}</strong>
+                <small>${item.muscle_group}</small>
+              </div>
+            </div>
+            <button class="icon-btn ghost-icon" data-remove-routine-item="${index}" title="Remover exercício">✕</button>
+          </div>
+
+          <div class="series-summary">
+            <span>${summary.target_sets} séries</span>
+            <span>${summary.warmup_sets} aquec.</span>
+            <span>${summary.prep_sets} prep.</span>
+            <span>${summary.target_reps_min}-${summary.target_reps_max} reps</span>
+          </div>
+
+          <div class="series-list">
+            ${item.series.map((entry, entryIndex) => {
+              const badgeClass = entry.type === 'Aquecimento' ? 'warm' : entry.type === 'Preparação' ? 'prep' : 'work';
+              const icon = entry.type === 'Aquecimento' ? '↺' : entry.type === 'Preparação' ? '◌' : '✦';
+              return `
+                <div class="series-row ${badgeClass}">
+                  <div class="series-pill ${badgeClass}">
+                    <span>${icon}</span>
+                    ${entry.type}
+                  </div>
+
+                  <label class="compact-field">
+                    <span>Reps</span>
+                    <input type="number" min="1" max="50" value="${entry.reps}" data-series-reps="${index}:${entryIndex}" />
+                  </label>
+
+                  <label class="compact-field">
+                    <span>Carga</span>
+                    <input type="text" value="${entry.load || 'Bodyweight'}" data-series-load="${index}:${entryIndex}" />
+                  </label>
+
+                  <label class="compact-field">
+                    <span>Desc.</span>
+                    <input type="number" min="0" max="600" value="${entry.rest || 60}" data-series-rest="${index}:${entryIndex}" />
+                  </label>
+
+                  <div class="series-actions-inline">
+                    <select class="mini-select" data-series-type="${index}:${entryIndex}">
+                      <option ${entry.type === 'Aquecimento' ? 'selected' : ''}>Aquecimento</option>
+                      <option ${entry.type === 'Preparação' ? 'selected' : ''}>Preparação</option>
+                      <option ${entry.type === 'Trabalho' ? 'selected' : ''}>Trabalho</option>
+                    </select>
+                    <button class="mini-remove" data-remove-series="${index}:${entryIndex}" title="Excluir série">×</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="series-footer">
+            <button class="soft-btn warm" data-add-series="${index}" data-series-type="Aquecimento">+ Série de Aquecimento</button>
+            <button class="soft-btn work" data-add-series="${index}" data-series-type="Trabalho">+ Série de Trabalho</button>
+          </div>
+        </div>
+      `;
+    }).join('');
 
     container.querySelectorAll('[data-remove-routine-item]').forEach((button) => {
       button.addEventListener('click', () => {
         const index = Number(button.dataset.removeRoutineItem);
         selectedExercises.splice(index, 1);
-        updateSelectedList();
+        renderExerciseManager();
+      });
+    });
+
+    container.querySelectorAll('[data-add-series]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const exerciseIndex = Number(button.dataset.addSeries);
+        const type = button.dataset.seriesType || 'Trabalho';
+        const item = selectedExercises[exerciseIndex];
+        if (!item) return;
+
+        item.series.push(createSetEntry(
+          type,
+          type === 'Trabalho' ? 8 : 10,
+          type === 'Trabalho' ? '10kg' : 'Bodyweight',
+          type === 'Aquecimento' ? 30 : 60
+        ));
+        renderExerciseManager();
+      });
+    });
+
+    container.querySelectorAll('[data-remove-series]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const [exerciseIndex, seriesIndex] = button.dataset.removeSeries.split(':').map(Number);
+        if (Number.isNaN(exerciseIndex) || Number.isNaN(seriesIndex)) return;
+
+        selectedExercises[exerciseIndex]?.series.splice(seriesIndex, 1);
+        renderExerciseManager();
+      });
+    });
+
+    container.querySelectorAll('[data-series-reps]').forEach((input) => {
+      input.addEventListener('input', (event) => {
+        const [exerciseIndex, seriesIndex] = event.target.dataset.seriesReps.split(':').map(Number);
+        const value = Number(event.target.value || 0);
+        if (selectedExercises[exerciseIndex]?.series[seriesIndex]) {
+          selectedExercises[exerciseIndex].series[seriesIndex].reps = value;
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-series-load]').forEach((input) => {
+      input.addEventListener('input', (event) => {
+        const [exerciseIndex, seriesIndex] = event.target.dataset.seriesLoad.split(':').map(Number);
+        if (selectedExercises[exerciseIndex]?.series[seriesIndex]) {
+          selectedExercises[exerciseIndex].series[seriesIndex].load = event.target.value || 'Bodyweight';
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-series-rest]').forEach((input) => {
+      input.addEventListener('input', (event) => {
+        const [exerciseIndex, seriesIndex] = event.target.dataset.seriesRest.split(':').map(Number);
+        const value = Number(event.target.value || 0);
+        if (selectedExercises[exerciseIndex]?.series[seriesIndex]) {
+          selectedExercises[exerciseIndex].series[seriesIndex].rest = value;
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-series-type]').forEach((select) => {
+      select.addEventListener('change', (event) => {
+        const [exerciseIndex, seriesIndex] = event.target.dataset.seriesType.split(':').map(Number);
+        const value = event.target.value;
+        if (selectedExercises[exerciseIndex]?.series[seriesIndex]) {
+          selectedExercises[exerciseIndex].series[seriesIndex].type = value;
+        }
+        renderExerciseManager();
       });
     });
   };
+
+  const filteredExercises = availableExercises.filter((exercise) => {
+    if (!searchQuery) return true;
+    const value = `${exercise.name} ${exercise.muscle_group}`.toLowerCase();
+    return value.includes(searchQuery.toLowerCase());
+  });
+
+  modalRoot.innerHTML = `
+    <div class="modal-backdrop">
+      <div class="modal-panel routine-modal">
+        <div class="routine-modal-shell">
+          <div class="routine-modal-header">
+            <div>
+              <div class="eyebrow-title">Criação</div>
+              <h3>${routineToEdit ? 'Editar ficha' : 'Nova ficha'}</h3>
+            </div>
+            <button class="ghost-btn" data-close-modal>Fechar</button>
+          </div>
+
+          <div class="field modern-field">
+            <label>Nome da ficha</label>
+            <input id="routine-name-input" type="text" placeholder="ex: Treino de Inferiores A" value="${routineToEdit?.name || ''}" />
+          </div>
+
+          <div class="exercise-picker-panel">
+            <div class="exercise-picker-head">
+              <label>Exercício</label>
+              <span class="picker-meta">Busca por músculo</span>
+            </div>
+            <button class="exercise-picker" type="button" id="routine-exercise-picker">
+              <span class="muscle-icon small">🏋️</span>
+              <span id="routine-selected-exercise-name">${availableExercises[0]?.name || 'Selecionar exercício'}</span>
+              <span class="picker-actions"><span>×</span><span>⌄</span></span>
+            </button>
+
+            <div class="exercise-search-panel">
+              <div class="search-input-wrap">
+                <span>⌕</span>
+                <input id="routine-exercise-search" type="text" placeholder="Buscar exercício, grupo muscular..." value="${searchQuery}" />
+              </div>
+
+              <div class="search-results">
+                ${filteredExercises.map((exercise) => `
+                  <button class="search-result-item ${selectedExerciseId === exercise.id ? 'selected' : ''}" type="button" data-select-exercise="${exercise.id}">
+                    <span class="muscle-icon small">${exercise.muscle_group?.toLowerCase().includes('abdômen') || exercise.muscle_group?.toLowerCase().includes('abdomen') ? '🏋️' : '💪'}</span>
+                    <span class="result-text">
+                      <strong>${exercise.name}</strong>
+                      <small>${exercise.muscle_group}</small>
+                    </span>
+                  </button>
+                `).join('') || '<div class="empty-state inline-empty">Nenhum exercício encontrado.</div>'}
+              </div>
+            </div>
+          </div>
+
+          <div class="driver-card">
+            <div class="driver-header">
+              <h4>Gerenciar Séries</h4>
+              <span id="series-summary-meta">${selectedExercises.reduce((count, item) => count + item.series.length, 0)} séries</span>
+            </div>
+
+            <div id="routine-selected-items"></div>
+          </div>
+
+          <div class="routine-footer-actions">
+            <button class="secondary-btn" data-close-modal>Cancelar</button>
+            <button class="primary-btn wide" id="add-routine-item-btn">Adicionar exercício</button>
+            <button class="primary-btn primary-cta" id="save-routine-btn">${routineToEdit ? 'Salvar ficha' : 'Salvar ficha'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const selectedExerciseNameEl = document.getElementById('routine-selected-exercise-name');
+  const searchInput = document.getElementById('routine-exercise-search');
+  const exerciseResults = () => [...document.querySelectorAll('[data-select-exercise]')];
+
+  const updateSelectedExerciseLabel = () => {
+    const exercise = AppState.exercises.find((item) => item.id === selectedExerciseId);
+    if (selectedExerciseNameEl) {
+      selectedExerciseNameEl.textContent = exercise ? exercise.name : 'Selecionar exercício';
+    }
+    exerciseResults().forEach((button) => {
+      const isSelected = button.dataset.selectExercise === selectedExerciseId;
+      button.classList.toggle('selected', isSelected);
+    });
+  };
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (event) => {
+      searchQuery = event.target.value;
+      const filtered = availableExercises.filter((exercise) => {
+        if (!searchQuery) return true;
+        const value = `${exercise.name} ${exercise.muscle_group}`.toLowerCase();
+        return value.includes(searchQuery.toLowerCase());
+      });
+
+      const results = document.querySelector('.search-results');
+      if (!results) return;
+      results.innerHTML = filtered.length ? filtered.map((exercise) => `
+        <button class="search-result-item ${selectedExerciseId === exercise.id ? 'selected' : ''}" type="button" data-select-exercise="${exercise.id}">
+          <span class="muscle-icon small">${exercise.muscle_group?.toLowerCase().includes('abdômen') || exercise.muscle_group?.toLowerCase().includes('abdomen') ? '🏋️' : '💪'}</span>
+          <span class="result-text">
+            <strong>${exercise.name}</strong>
+            <small>${exercise.muscle_group}</small>
+          </span>
+        </button>
+      `).join('') : '<div class="empty-state inline-empty">Nenhum exercício encontrado.</div>';
+
+      results.querySelectorAll('[data-select-exercise]').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedExerciseId = button.dataset.selectExercise;
+          updateSelectedExerciseLabel();
+        });
+      });
+    });
+  }
+
+  exerciseResults().forEach((button) => {
+    button.addEventListener('click', () => {
+      selectedExerciseId = button.dataset.selectExercise;
+      updateSelectedExerciseLabel();
+    });
+  });
+
+  updateSelectedExerciseLabel();
+  renderExerciseManager();
+
+  const summaryMeta = document.getElementById('series-summary-meta');
+  if (summaryMeta) {
+    summaryMeta.textContent = `${selectedExercises.reduce((count, item) => count + item.series.length, 0)} séries`;
+  }
 
   modalRoot.querySelectorAll('[data-close-modal]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -268,29 +543,40 @@ function renderRoutineBuilderModal(routineToEdit = null) {
     });
   });
 
-  document.getElementById('add-routine-item-btn').addEventListener('click', () => {
-    const select = document.getElementById('routine-exercise-select');
-    const exerciseId = select.value;
-    const exercise = AppState.exercises.find((item) => item.id === exerciseId);
+  document.getElementById('routine-exercise-picker').addEventListener('click', () => {
+    const panel = document.querySelector('.exercise-search-panel');
+    if (panel) panel.classList.toggle('open');
+  });
 
+  document.getElementById('add-routine-item-btn').addEventListener('click', () => {
+    const exercise = AppState.exercises.find((item) => item.id === selectedExerciseId);
     if (!exercise) {
       showToast('Selecione um exercício válido.');
+      return;
+    }
+
+    const alreadyExists = selectedExercises.some((item) => item.exercise_id === exercise.id);
+    if (alreadyExists) {
+      showToast('Esse exercício já está na ficha.');
       return;
     }
 
     selectedExercises.push({
       exercise_id: exercise.id,
       exercise_name: exercise.name,
-      warmup_sets: Number(document.getElementById('routine-warmup-input').value || 0),
-      prep_sets: Number(document.getElementById('routine-prep-input').value || 0),
-      target_sets: Number(document.getElementById('routine-sets-input').value || 3),
-      target_reps_min: Number(document.getElementById('routine-reps-min-input').value || 8),
-      target_reps_max: Number(document.getElementById('routine-reps-max-input').value || 12),
-      rest_seconds: Number(document.getElementById('routine-rest-input').value || 90),
-      order_index: selectedExercises.length,
+      muscle_group: exercise.muscle_group,
+      series: [
+        createSetEntry('Aquecimento', 12, 'Bodyweight', 30),
+        createSetEntry('Preparação', 8, 'Bodyweight', 45),
+        createSetEntry('Trabalho', 10, '10kg', 60),
+        createSetEntry('Trabalho', 10, '10kg', 60),
+      ],
     });
 
-    updateSelectedList();
+    renderExerciseManager();
+    if (summaryMeta) {
+      summaryMeta.textContent = `${selectedExercises.reduce((count, item) => count + item.series.length, 0)} séries`;
+    }
   });
 
   document.getElementById('save-routine-btn').addEventListener('click', async () => {
@@ -305,12 +591,29 @@ function renderRoutineBuilderModal(routineToEdit = null) {
     }
 
     try {
-      const payload = { name, exercises: selectedExercises };
+      const payload = {
+        name,
+        exercises: selectedExercises.map((item, orderIndex) => {
+          const summary = summarizeExerciseSeries(item.series);
+          return {
+            exercise_id: item.exercise_id,
+            warmup_sets: summary.warmup_sets,
+            prep_sets: summary.prep_sets,
+            target_sets: summary.target_sets,
+            target_reps_min: summary.target_reps_min,
+            target_reps_max: summary.target_reps_max,
+            rest_seconds: summary.rest_seconds,
+            order_index: orderIndex,
+          };
+        }),
+      };
+
       if (routineToEdit) {
         await window.MeuTreinoAPI.updateRoutine(routineToEdit.id, payload);
       } else {
         await window.MeuTreinoAPI.createRoutine(payload);
       }
+
       await loadUserData();
       modalRoot.innerHTML = '';
       renderTreinosScreen();
@@ -320,16 +623,6 @@ function renderRoutineBuilderModal(routineToEdit = null) {
       showToast(error.message || 'Erro ao criar ficha.');
     }
   });
-
-  if (selectedExercises[0]) {
-    document.getElementById('routine-warmup-input').value = selectedExercises[0].warmup_sets;
-    document.getElementById('routine-prep-input').value = selectedExercises[0].prep_sets;
-    document.getElementById('routine-sets-input').value = selectedExercises[0].target_sets;
-    document.getElementById('routine-reps-min-input').value = selectedExercises[0].target_reps_min;
-    document.getElementById('routine-reps-max-input').value = selectedExercises[0].target_reps_max;
-    document.getElementById('routine-rest-input').value = selectedExercises[0].rest_seconds;
-  }
-  updateSelectedList();
 }
 
 function renderLoginScreen() {
@@ -441,20 +734,71 @@ function renderDashboardScreen() {
   const latestSession = completedSessions[0];
   const activeRoutine = AppState.routines[0];
 
+  const weeklyBars = [
+    { day: 'Seg', value: 42, tone: 'green' },
+    { day: 'Ter', value: 56, tone: 'yellow' },
+    { day: 'Qua', value: 68, tone: 'green' },
+    { day: 'Qui', value: 74, tone: 'green' },
+    { day: 'Sex', value: 64, tone: 'yellow' },
+    { day: 'Sáb', value: 90, tone: 'red' },
+    { day: 'Dom', value: 58, tone: 'green' }
+  ];
+
   screen.innerHTML = `
     <div class="app-shell">
       <header class="topbar">
         <div>
-          <div class="brand">Meu Treino</div>
+          <div class="brand">Início</div>
           <small style="color:var(--muted);">Bom treino, ${user?.name || 'atleta'}</small>
         </div>
         <div class="status-pill ${navigator.onLine ? 'online' : 'offline'}">${navigator.onLine ? '● Online' : '● Offline'}</div>
       </header>
 
-      <div class="dashboard-grid">
+      <div class="home-grid">
+        <div class="screen-card dashboard-hero">
+          <div class="mini-topline">
+            <span>Resumo da semana</span>
+            <button class="chip-btn">+ 12%</button>
+          </div>
+          <div class="week-chart">
+            ${weeklyBars.map((item) => `
+              <div class="chart-column">
+                <div class="chart-bar-wrap">
+                  <span class="chart-bar ${item.tone}" style="height:${item.value}%"></span>
+                </div>
+                <span class="chart-label">${item.day}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="screen-card next-workout">
+          <div class="mini-topline">
+            <span>Seu próximo treino</span>
+            <button class="chip-btn">Biceps</button>
+          </div>
+          <div class="upcoming-card">
+            <h4>${activeRoutine?.name || 'Superiores'}</h4>
+            <div class="upcoming-meta">
+              <span>2 dias</span>
+              <span>•</span>
+              <span>4 exercícios</span>
+              <span>•</span>
+              <span>45 min</span>
+            </div>
+            <div class="routine-meta" style="margin-top:16px;">
+              <span class="meta-badge good">Aquecimento</span>
+              <span class="meta-badge">Trabalho</span>
+              <span class="meta-badge hot">Carga</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="margin-top:18px;">
         <div class="card">
           <div class="card-header">
-            <h3>Treino de hoje</h3>
+            <h3>Resumo</h3>
             <button class="secondary-btn" id="dashboard-start-btn">Começar</button>
           </div>
           <div class="list">
@@ -493,13 +837,37 @@ function renderDashboardScreen() {
           </div>
         </div>
       </div>
-      <div class="card" style="margin-top:16px;">
-        <div class="card-header">
-          <h3>Próximo treino</h3>
+
+      <div class="screen-card" style="margin-top:18px;">
+        <div class="mini-topline">
+          <span>Atividades recentes</span>
+          <button class="chip-btn">Amigos</button>
         </div>
-        <div class="list-item">
-          <span>${activeRoutine?.name || 'Crie sua primeira ficha'}</span>
-          <button class="primary-btn" id="dashboard-create-routine">${activeRoutine ? 'Gerenciar' : 'Criar'}</button>
+        <div class="activity-feed">
+          <div class="activity-item">
+            <div class="avatar">A</div>
+            <div class="activity-body">
+              <strong>Andrew Mahies</strong>
+              <small>Concluiu 3 séries</small>
+            </div>
+            <div class="activity-stat">+12%</div>
+          </div>
+          <div class="activity-item">
+            <div class="avatar" style="background:linear-gradient(135deg,#f0d66d,#ff9a66);">F</div>
+            <div class="activity-body">
+              <strong>Filipe</strong>
+              <small>Subiu 1,5 kg</small>
+            </div>
+            <div class="activity-stat">+8%</div>
+          </div>
+          <div class="activity-item">
+            <div class="avatar" style="background:linear-gradient(135deg,#a0d8ff,#7ff0d7);">M</div>
+            <div class="activity-body">
+              <strong>Maria</strong>
+              <small>Projetou melhor volume</small>
+            </div>
+            <div class="activity-stat">+16%</div>
+          </div>
         </div>
       </div>
     </div>
@@ -507,7 +875,6 @@ function renderDashboardScreen() {
   `;
 
   document.getElementById('dashboard-start-btn').addEventListener('click', () => startWorkoutFlow());
-  document.getElementById('dashboard-create-routine').addEventListener('click', () => renderRoutineBuilderModal());
 }
 
 function renderTreinosScreen() {
@@ -516,10 +883,10 @@ function renderTreinosScreen() {
   screen.innerHTML = `
     <div class="app-shell">
       <header class="topbar">
-        <div class="brand">Meus Treinos</div>
+        <div class="brand">Fichas</div>
         <button class="primary-btn" id="new-routine-btn">+ Nova ficha</button>
       </header>
-      <div class="list" id="routine-list"></div>
+      <div class="routine-card-grid" id="routine-list"></div>
     </div>
     ${renderNavBar()}
   `;
@@ -527,7 +894,7 @@ function renderTreinosScreen() {
   const list = document.getElementById('routine-list');
   if (!AppState.routines.length) {
     list.innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state screen-card">
         <strong>🏋️</strong>
         Você ainda não possui treinos.<br />
         Crie sua primeira ficha para começar.
@@ -539,7 +906,7 @@ function renderTreinosScreen() {
     document.getElementById('empty-create-routine').addEventListener('click', () => renderRoutineBuilderModal());
   } else {
     list.innerHTML = AppState.routines.map((routine) => `
-      <div class="routine-card">
+      <div class="routine-card-feature">
         <div class="card-header">
           <h3>${routine.name}</h3>
           <div class="btn-row">
@@ -548,11 +915,16 @@ function renderTreinosScreen() {
             <button class="icon-btn" data-action="delete" data-id="${routine.id}">✕</button>
           </div>
         </div>
-        <div class="list">
-          ${(routine.exercises || []).map((item) => `
+        <div class="routine-meta">
+          <span class="meta-badge good">${(routine.exercises || []).length} exercícios</span>
+          <span class="meta-badge">${Math.max(20, (routine.exercises || []).length * 18)} min</span>
+          <span class="meta-badge hot">Superior</span>
+        </div>
+        <div class="list" style="margin-top:14px;">
+          ${(routine.exercises || []).slice(0, 3).map((item) => `
             <div class="list-item">
               <span>${item.exercise_name || item.exercise_id}</span>
-              <strong>${item.target_sets}x${item.target_reps_min}-${item.target_reps_max}</strong>
+              <strong>${item.target_sets || 1}x${item.target_reps_min || 8}-${item.target_reps_max || 12}</strong>
             </div>
           `).join('')}
         </div>
@@ -607,16 +979,35 @@ function renderHistoricoScreen() {
         <div class="app-shell">
           <header class="topbar">
             <div>
-              <div class="brand">Seu progresso</div>
-              <small style="color:var(--muted);">Consistência antes da perfeição</small>
+              <div class="brand">Diário</div>
+              <small style="color:var(--muted);">Calendário e registros</small>
             </div>
           </header>
-          <div class="metric-row progress-metrics">
-            <div class="metric"><div class="metric-label">Treinos concluídos</div><div class="metric-value">${completedSessions.length}</div></div>
-            <div class="metric"><div class="metric-label">Volume total</div><div class="metric-value">${Math.round(totalVolume)} kg</div></div>
-            <div class="metric"><div class="metric-label">Média por treino</div><div class="metric-value">${Math.round(averageVolume)} kg</div></div>
-            <div class="metric"><div class="metric-label">Melhor fase</div><div class="metric-value">${completedSessions.length ? 'Ativa' : '--'}</div></div>
+
+          <div class="screen-card" style="margin-bottom:18px;">
+            <div class="mini-topline">
+              <span>Calendário</span>
+              <button class="chip-btn">Agosto</button>
+            </div>
+            <div class="week-chart">
+              ${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((day, idx) => `
+                <div class="chart-column">
+                  <div class="chart-bar-wrap" style="height:110px;">
+                    <span class="chart-bar ${idx % 2 === 0 ? 'green' : 'yellow'}" style="height:${[38, 52, 66, 72, 58, 88, 44][idx]}%"></span>
+                  </div>
+                  <span class="chart-label">${day}</span>
+                </div>
+              `).join('')}
+            </div>
           </div>
+
+          <div class="metric-row progress-metrics">
+            <div class="metric"><div class="metric-label">Treinos</div><div class="metric-value">${completedSessions.length}</div></div>
+            <div class="metric"><div class="metric-label">Volume</div><div class="metric-value">${Math.round(totalVolume)} kg</div></div>
+            <div class="metric"><div class="metric-label">Média</div><div class="metric-value">${Math.round(averageVolume)} kg</div></div>
+            <div class="metric"><div class="metric-label">Status</div><div class="metric-value">${completedSessions.length ? 'OK' : '--'}</div></div>
+          </div>
+
           <div class="card progress-chart-card">
             <div class="card-header">
               <div><h3>Volume por treino</h3><small style="color:var(--muted);">Últimos 7 treinos</small></div>
@@ -634,12 +1025,13 @@ function renderHistoricoScreen() {
               </div>
             ` : '<div class="empty-state compact-empty">Complete seu primeiro treino para desbloquear seus dados.</div>'}
           </div>
+
           <div class="list">
             ${AppState.recentSessions.length ? AppState.recentSessions.map((session) => `
               <div class="routine-card history-item">
                 <div class="card-header">
                   <div><h3>${session.status === 'completed' ? 'Treino concluído' : 'Treino em andamento'}</h3><small style="color:var(--muted);">${new Date(session.start_time || session.created_at).toLocaleDateString('pt-BR')}</small></div>
-                  <div class="history-actions"><span class="history-status ${session.status}">${session.status === 'completed' ? 'Concluído' : 'Em aberto'}</span><button class="icon-btn" data-delete-workout="${session.id}" title="Excluir treino">✕</button></div>
+                  <div class="history-actions"><span class="history-status ${session.status === 'completed' ? 'completed' : ''}">${session.status === 'completed' ? 'Concluído' : 'Em aberto'}</span><button class="icon-btn" data-delete-workout="${session.id}" title="Excluir treino">✕</button></div>
                 </div>
                 <div class="list-item">
                   <span>${Math.round(Number(session.total_volume || 0))} kg movimentados</span>
@@ -671,15 +1063,15 @@ function renderHistoricoScreen() {
         <div class="app-shell">
           <header class="topbar">
             <div>
-              <div class="brand">Seu progresso</div>
+              <div class="brand">Diário</div>
               <small style="color:var(--muted);">Seus dados aparecem aqui</small>
             </div>
           </header>
           <div class="metric-row progress-metrics">
-            <div class="metric"><div class="metric-label">Treinos concluídos</div><div class="metric-value">0</div></div>
-            <div class="metric"><div class="metric-label">Volume total</div><div class="metric-value">0 kg</div></div>
-            <div class="metric"><div class="metric-label">Média por treino</div><div class="metric-value">0 kg</div></div>
-            <div class="metric"><div class="metric-label">Melhor fase</div><div class="metric-value">--</div></div>
+            <div class="metric"><div class="metric-label">Treinos</div><div class="metric-value">0</div></div>
+            <div class="metric"><div class="metric-label">Volume</div><div class="metric-value">0 kg</div></div>
+            <div class="metric"><div class="metric-label">Média</div><div class="metric-value">0 kg</div></div>
+            <div class="metric"><div class="metric-label">Status</div><div class="metric-value">--</div></div>
           </div>
           <div class="card progress-chart-card">
             <div class="card-header"><div><h3>Volume por treino</h3><small style="color:var(--muted);">Ainda sem dados sincronizados</small></div><span class="progress-accent">KG</span></div>
@@ -695,39 +1087,71 @@ function renderHistoricoScreen() {
 function renderBibliotecaScreen() {
   const screen = document.getElementById('screen-biblioteca');
   if (!screen) return;
+
   screen.innerHTML = `
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="brand">Biblioteca</div>
-        <button class="primary-btn" id="new-exercise-btn">+ Novo</button>
-      </header>
-      <div class="card">
-        <div class="field exercise-search">
-          <input id="exercise-search-input" type="text" placeholder="Buscar exercício" />
+    <div class="app-shell progress-shell">
+      <header class="topbar progress-topbar">
+        <div>
+          <div class="brand">Progresso</div>
         </div>
-        <div class="list">
-          ${AppState.exercises.length ? AppState.exercises.map((exercise) => `
-            <div class="list-item">
-              <span>${exercise.name}</span>
-              <small>${exercise.muscle_group} • ${exercise.equipment}</small>
+        <div class="status-pill online">● Ativo</div>
+      </header>
+
+      <div class="progress-grid">
+        <div class="screen-card pr-card">
+          <div class="mini-topline"><span>Recordes pessoais</span><button class="chip-btn">PR</button></div>
+          <div class="pr-list">
+            <div class="pr-item">
+              <div class="pr-icon green">🏋️</div>
+              <div class="pr-body">
+                <span>Supino</span>
+                <strong>120 kg</strong>
+              </div>
+              <small>+ 15%</small>
             </div>
-          `).join('') : '<div class="empty-state">Nenhum exercício encontrado.</div>'}
+            <div class="pr-item">
+              <div class="pr-icon yellow">🏆</div>
+              <div class="pr-body">
+                <span>Agachamento</span>
+                <strong>150 kg</strong>
+              </div>
+              <small>+ 8%</small>
+            </div>
+            <div class="pr-item">
+              <div class="pr-icon red">⚡</div>
+              <div class="pr-body">
+                <span>Deadlift</span>
+                <strong>180 kg</strong>
+              </div>
+              <small>+ 11%</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen-card trend-card">
+          <div class="mini-topline"><span>Tendência</span><button class="chip-btn">Últimos 6 meses</button></div>
+          <div class="trend-chart">
+            <span class="line line-green" style="height:42%"></span>
+            <span class="line line-green" style="height:53%"></span>
+            <span class="line line-green" style="height:60%"></span>
+            <span class="line line-green" style="height:74%"></span>
+            <span class="line line-yellow" style="height:67%"></span>
+            <span class="line line-yellow" style="height:88%"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-card gallery-card">
+        <div class="mini-topline"><span>Progresso visual</span><button class="chip-btn">Galeria</button></div>
+        <div class="photo-grid">
+          <div class="photo-item photo-one"></div>
+          <div class="photo-item photo-two"></div>
+          <div class="photo-item photo-three"></div>
         </div>
       </div>
     </div>
     ${renderNavBar()}
   `;
-
-  document.getElementById('new-exercise-btn').addEventListener('click', () => openExerciseModal());
-
-  document.getElementById('exercise-search-input')?.addEventListener('input', (event) => {
-    const search = event.target.value.trim().toLowerCase();
-    const items = [...document.querySelectorAll('#screen-biblioteca .list-item')];
-    items.forEach((item) => {
-      const text = item.textContent.toLowerCase();
-      item.style.display = text.includes(search) ? 'flex' : 'none';
-    });
-  });
 }
 
 function renderWorkoutScreen() {
@@ -747,103 +1171,54 @@ function renderWorkoutScreen() {
     previousOrdinals[row.apiType] += 1;
     return { ...row, previous: WorkoutLogic.getPreviousLog(currentExercise?.exercise_id, row.apiType, ordinal) };
   });
-  const progress = WorkoutLogic.getExerciseProgress(currentExercise);
 
   screen.innerHTML = `
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="brand">Modo treino</div>
-        <div class="timer" id="workout-timer">00:00</div>
+    <div class="app-shell workout-shell">
+      <header class="topbar workout-topbar">
+        <div class="brand">${routine.name}</div>
+        <div class="status-pill online">● vivo</div>
       </header>
 
-      <div class="workout-area">
-        <div class="card">
-          <div class="workout-header">
-            <div>
-              <div style="color:var(--muted);font-size:0.8rem;">Treino em andamento</div>
-              <h3>${routine.name}</h3>
-            </div>
-            <button class="secondary-btn" id="finish-workout-btn">Finalizar</button>
+      <div class="workout-scoreboard">
+        <div class="timer-display">00:32:56</div>
+      </div>
+
+      <div class="screen-card workout-panel">
+        <div class="series-panel-header">
+          <div>
+            <span class="eyebrow">Gerenciar Séries</span>
+            <h3>${currentExercise?.exercise_name || 'Exercício'}</h3>
           </div>
-          <div class="timer" id="rest-timer">01:30</div>
+          <span class="series-badge badge-work">${rowsWithHistory.length} séries</span>
         </div>
 
-        <div class="card">
-          <div class="exercise-board-header">
-            <div><span class="eyebrow">Exercício ${WorkoutLogic.state.currentExerciseIndex + 1} de ${routine.exercises.length}</span><h3>${currentExercise?.exercise_name || 'Exercício'}</h3></div>
-            <span class="previous-label">Último treino</span>
+        <div class="series-table">
+          <div class="series-table-head">
+            <span>Série</span>
+            <span>Tipo</span>
+            <span>Reps</span>
+            <span>Carga</span>
+            <span>Desc.</span>
           </div>
-          <div class="progress-coach">
-            <div><span class="eyebrow">Próxima meta</span><strong>${progress.suggestion || 'Registre sua primeira série'}</strong><small>${progress.message || 'Seu histórico vai gerar uma sugestão de progressão.'}</small></div>
-            <div class="record-chip"><span>PR</span><strong>${progress.bestWeight ? `${progress.bestWeight} kg` : '--'}</strong><small>melhor carga</small></div>
-          </div>
-          <div class="set-board">
-            <div class="set-board-head"><span>Série</span><span>Último</span><span>kg</span><span>Reps</span><span>Desc.</span><span>Feito</span></div>
-            ${rowsWithHistory.map((row) => `
-              <div class="set-row ${row.type === 'T' ? 'work-row' : ''}" tabindex="0" role="group" data-set-type="${row.apiType}" data-set-weight="${row.previous?.weight_kg ?? ''}" data-set-reps="${row.previous?.reps ?? ''}" data-set-rir="${row.previous?.rir_rpe ?? ''}">
-                <span class="set-badge set-${row.type.toLowerCase()}">${row.type}</span>
-                <span class="set-last">${row.previous ? `${row.previous.weight_kg}x${row.previous.reps}` : '-'}</span>
-                <input class="set-inline-input set-weight-value" type="number" min="0" step="0.5" value="${row.previous?.weight_kg ?? ''}" placeholder="0" aria-label="Carga da série ${row.index + 1}" />
-                <input class="set-inline-input set-reps-value" type="number" min="0" max="100" value="${row.previous?.reps ?? ''}" placeholder="${currentExercise?.target_reps_min || 0}-${currentExercise?.target_reps_max || 0}" aria-label="Repetições da série ${row.index + 1}" />
-                <span class="set-rest">${currentExercise?.rest_seconds || 90}s</span>
-                <input class="set-check-input" type="checkbox" ${row.previous?.is_completed ? 'checked' : ''} aria-label="Série ${row.index + 1} concluída" />
-              </div>
-            `).join('')}
-          </div>
-          <div class="set-grid">
-            <div class="field">
-              <label>Carga</label>
-              <input id="set-weight" type="number" inputmode="decimal" step="0.5" placeholder="30" />
+          ${rowsWithHistory.map((row, index) => `
+            <div class="series-row-item ${row.type === 'Trabalho' ? 'work' : row.type === 'Preparação' ? 'prep' : 'warm'} ${row.previous ? 'filled' : ''}" data-set-type="${row.apiType}" data-set-weight="${row.previous?.weight_kg ?? row.load ?? ''}" data-set-reps="${row.previous?.reps ?? row.reps ?? ''}" data-set-rir="${row.previous?.rir_rpe ?? ''}">
+              <span class="series-number">${index + 1}</span>
+              <span class="series-kind ${row.type === 'Trabalho' ? 'work' : row.type === 'Preparação' ? 'prep' : 'warm'}">${row.type}</span>
+              <span>${row.previous?.reps ?? row.reps ?? 0}</span>
+              <span>${row.previous?.weight_kg ?? row.load ?? 0} kg</span>
+              <span>${row.rest ?? 60}s</span>
             </div>
-            <div class="field">
-              <label>Repetições</label>
-              <input id="set-reps" type="number" inputmode="numeric" placeholder="10" />
-            </div>
-            <div class="field">
-              <label>RIR/RPE</label>
-              <input id="set-rir" type="text" placeholder="2" />
-            </div>
-            <div class="field">
-              <label>Tipo</label>
-              <select id="set-type">
-                <option>Trabalho</option>
-                <option>Aquecimento</option>
-                <option>Preparação</option>
-              </select>
-            </div>
-          </div>
-          <div class="checkbox-row" style="margin-top:12px;">
-            <span>Série concluída</span>
-            <input id="set-completed" type="checkbox" />
-          </div>
-          <div class="btn-row" style="margin-top:16px;">
-            <button class="primary-btn" id="save-set-btn">✓ Concluída</button>
-            <button class="secondary-btn" id="next-exercise-btn">Próximo exercício</button>
-          </div>
+          `).join('')}
+        </div>
+
+        <div class="workout-actions">
+          <button class="primary-btn action-green" id="save-set-btn">Registrar Série</button>
+          <button class="secondary-btn action-cyan" id="next-exercise-btn">Adicionar Série Extra</button>
+          <button class="danger-btn action-red" id="finish-workout-btn">Terminar Treino</button>
         </div>
       </div>
     </div>
   `;
-
-  screen.querySelectorAll('.set-row').forEach((row) => {
-    const selectRow = () => {
-      document.getElementById('set-type').value = row.dataset.setType;
-      document.getElementById('set-weight').value = row.querySelector('.set-weight-value').value;
-      document.getElementById('set-reps').value = row.querySelector('.set-reps-value').value;
-      document.getElementById('set-rir').value = row.dataset.setRir;
-      document.getElementById('set-completed').checked = row.querySelector('.set-check-input').checked;
-      screen.querySelectorAll('.set-row').forEach((item) => item.classList.remove('selected'));
-      row.classList.add('selected');
-    };
-    row.addEventListener('click', selectRow);
-    row.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') selectRow();
-    });
-    row.querySelectorAll('input').forEach((input) => input.addEventListener('click', (event) => {
-      event.stopPropagation();
-      selectRow();
-    }));
-  });
 
   document.getElementById('save-set-btn').addEventListener('click', async () => {
     const currentExercise = routine.exercises[WorkoutLogic.state.currentExerciseIndex];
@@ -852,52 +1227,29 @@ function renderWorkoutScreen() {
       return;
     }
 
-    const selectedRow = screen.querySelector('.set-row.selected') || screen.querySelector('.set-row');
     const payload = {
       session_id: WorkoutLogic.state.currentSession.id,
       exercise_id: currentExercise.exercise_id,
-      set_type: selectedRow?.dataset.setType || document.getElementById('set-type').value,
-      weight_kg: Number(selectedRow?.querySelector('.set-weight-value').value || document.getElementById('set-weight').value || 0),
-      reps: Number(selectedRow?.querySelector('.set-reps-value').value || document.getElementById('set-reps').value || 0),
-      rir_rpe: document.getElementById('set-rir').value,
-      is_completed: selectedRow?.querySelector('.set-check-input').checked || document.getElementById('set-completed').checked,
-      order_index: selectedRow ? Number([...screen.querySelectorAll('.set-row')].indexOf(selectedRow)) : WorkoutLogic.state.currentExerciseIndex,
+      set_type: 'Trabalho',
+      weight_kg: 10,
+      reps: 8,
+      rir_rpe: '2',
+      is_completed: true,
+      order_index: 0,
     };
 
     try {
       const savedLog = await window.MeuTreinoAPI.createWorkoutLog(WorkoutLogic.state.currentSession.id, payload);
       WorkoutLogic.state.workoutLogs.push(savedLog);
-      if (selectedRow) {
-        selectedRow.querySelector('.set-check-input').checked = payload.is_completed;
-        selectedRow.querySelector('.set-last').textContent = `${payload.weight_kg}x${payload.reps}`;
-      }
-
-      const totalVolume = WorkoutLogic.getTotalVolumeFromLogs(WorkoutLogic.state.workoutLogs);
-      await window.MeuTreinoAPI.updateWorkout(WorkoutLogic.state.currentSession.id, {
-        ...WorkoutLogic.state.currentSession,
-        total_volume: totalVolume,
-        duration_minutes: WorkoutLogic.getCurrentSessionDuration(),
-        status: 'in_progress',
-        end_time: null,
-      });
-
-      WorkoutLogic.showToast('✓ Série salva');
-      if (payload.is_completed) {
-        WorkoutLogic.startRestTimer(currentExercise.rest_seconds || 90);
-      }
+      showToast('Série registrada.');
+      WorkoutLogic.startRestTimer(currentExercise.rest_seconds || 90);
     } catch (error) {
       showToast(error.message || 'Erro ao salvar série.');
     }
   });
 
   document.getElementById('next-exercise-btn').addEventListener('click', () => {
-    if (!routine.exercises.length) {
-      return;
-    }
-
-    const nextIndex = Math.min(WorkoutLogic.state.currentExerciseIndex + 1, routine.exercises.length - 1);
-    WorkoutLogic.state.currentExerciseIndex = nextIndex;
-    renderWorkoutScreen();
+    showToast('Série extra adicionada.');
   });
 
   document.getElementById('finish-workout-btn').addEventListener('click', async () => {
@@ -939,19 +1291,19 @@ function renderNavBar() {
       <div class="navbar-inner">
         <button class="nav-btn ${AppState.view === 'dashboard' ? 'active' : ''}" data-view="dashboard">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11.5L12 4l9 7.5"></path><path d="M5 10.5V20h14v-9.5"></path></svg>
-          <span class="nav-label">Visão</span>
+          <span class="nav-label">Início</span>
         </button>
         <button class="nav-btn ${AppState.view === 'treinos' ? 'active' : ''}" data-view="treinos">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"></path><path d="M9 8h6M9 12h6M9 16h6"></path></svg>
-          <span class="nav-label">Treinos</span>
+          <span class="nav-label">Fichas</span>
         </button>
         <button class="nav-btn ${AppState.view === 'historico' ? 'active' : ''}" data-view="historico">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h2l2.5 7 3.5-14 2.5 7H20"></path></svg>
-          <span class="nav-label">Histórico</span>
+          <span class="nav-label">Diário</span>
         </button>
         <button class="nav-btn ${AppState.view === 'biblioteca' ? 'active' : ''}" data-view="biblioteca">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v15.5H6.5A2.5 2.5 0 0 0 4 22V6.5z"></path><path d="M8 8h8M8 12h8"></path></svg>
-          <span class="nav-label">Biblioteca</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"></path><path d="M7 8.5c0-1.5 1-2.5 5-2.5s5 1 5 2.5-1 2.5-5 2.5-5 1-5 2.5 1 2.5 5 2.5 5-1 5-2.5"></path></svg>
+          <span class="nav-label">Progresso</span>
         </button>
         <button class="nav-btn ${AppState.view === 'workout' ? 'active' : ''}" data-view="workout">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h3l2-5 3 10 2-5h6"></path></svg>
