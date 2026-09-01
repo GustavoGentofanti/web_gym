@@ -13,6 +13,7 @@ const Views = {
   login: () => renderLoginScreen(),
   dashboard: () => renderDashboardScreen(),
   treinos: () => renderTreinosScreen(),
+  exercicios: () => renderExerciseManagementScreen(),
   historico: () => renderHistoricoScreen(),
   biblioteca: () => renderBibliotecaScreen(),
   workout: () => renderWorkoutScreen(),
@@ -758,40 +759,52 @@ function renderDashboardScreen() {
         <div class="screen-card dashboard-hero">
           <div class="mini-topline">
             <span>Resumo da semana</span>
-            <button class="chip-btn">+ 12%</button>
+            <button class="chip-btn">${completedSessions.length ? '+ ' + Math.max(1, completedSessions.length) + '%' : 'Sem dados'}</button>
           </div>
-          <div class="week-chart">
-            ${weeklyBars.map((item) => `
-              <div class="chart-column">
-                <div class="chart-bar-wrap">
-                  <span class="chart-bar ${item.tone}" style="height:${item.value}%"></span>
+          ${completedSessions.length ? `
+            <div class="week-chart">
+              ${weeklyBars.map((item) => `
+                <div class="chart-column">
+                  <div class="chart-bar-wrap">
+                    <span class="chart-bar ${item.tone}" style="height:${item.value}%"></span>
+                  </div>
+                  <span class="chart-label">${item.day}</span>
                 </div>
-                <span class="chart-label">${item.day}</span>
-              </div>
-            `).join('')}
-          </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="empty-state compact-empty">
+              <strong>📊</strong>
+              Complete seu primeiro treino para visualizar o progresso semanal.
+            </div>
+          `}
         </div>
 
         <div class="screen-card next-workout">
           <div class="mini-topline">
             <span>Seu próximo treino</span>
-            <button class="chip-btn">Biceps</button>
+            <button class="chip-btn">${activeRoutine ? activeRoutine.name.split(' ')[0] : 'Ficha'}</button>
           </div>
-          <div class="upcoming-card">
-            <h4>${activeRoutine?.name || 'Superiores'}</h4>
-            <div class="upcoming-meta">
-              <span>2 dias</span>
-              <span>•</span>
-              <span>4 exercícios</span>
-              <span>•</span>
-              <span>45 min</span>
+          ${activeRoutine ? `
+            <div class="upcoming-card">
+              <h4>${activeRoutine.name}</h4>
+              <div class="upcoming-meta">
+                <span>${(activeRoutine.exercises || []).length || 0} exercícios</span>
+                <span>•</span>
+                <span>${Math.max(20, (activeRoutine.exercises || []).length * 18)} min</span>
+              </div>
+              <div class="routine-meta" style="margin-top:16px;">
+                <span class="meta-badge good">Aquecimento</span>
+                <span class="meta-badge">Trabalho</span>
+                <span class="meta-badge hot">Carga</span>
+              </div>
             </div>
-            <div class="routine-meta" style="margin-top:16px;">
-              <span class="meta-badge good">Aquecimento</span>
-              <span class="meta-badge">Trabalho</span>
-              <span class="meta-badge hot">Carga</span>
+          ` : `
+            <div class="empty-state compact-empty">
+              <strong>🏋️</strong>
+              Sem ficha cadastrada.
             </div>
-          </div>
+          `}
         </div>
       </div>
 
@@ -840,35 +853,28 @@ function renderDashboardScreen() {
 
       <div class="screen-card" style="margin-top:18px;">
         <div class="mini-topline">
-          <span>Atividades recentes</span>
-          <button class="chip-btn">Amigos</button>
+          <span>Seu progresso</span>
+          <button class="chip-btn">Seu app</button>
         </div>
-        <div class="activity-feed">
-          <div class="activity-item">
-            <div class="avatar">A</div>
-            <div class="activity-body">
-              <strong>Andrew Mahies</strong>
-              <small>Concluiu 3 séries</small>
-            </div>
-            <div class="activity-stat">+12%</div>
+        ${completedSessions.length ? `
+          <div class="activity-feed">
+            ${completedSessions.slice(0, 3).map((session, index) => `
+              <div class="activity-item">
+                <div class="avatar" style="background:linear-gradient(135deg,#d9f56a,#7fe3d1);">${(user?.name || 'T')[0].toUpperCase()}</div>
+                <div class="activity-body">
+                  <strong>Treino ${index + 1}</strong>
+                  <small>${new Date(session.start_time || session.created_at).toLocaleDateString('pt-BR')}</small>
+                </div>
+                <div class="activity-stat">+${Math.min(18, (index + 1) * 6)}%</div>
+              </div>
+            `).join('')}
           </div>
-          <div class="activity-item">
-            <div class="avatar" style="background:linear-gradient(135deg,#f0d66d,#ff9a66);">F</div>
-            <div class="activity-body">
-              <strong>Filipe</strong>
-              <small>Subiu 1,5 kg</small>
-            </div>
-            <div class="activity-stat">+8%</div>
+        ` : `
+          <div class="empty-state compact-empty">
+            <strong>📈</strong>
+            Ainda não há registros suficientes para mostrar seu progresso.
           </div>
-          <div class="activity-item">
-            <div class="avatar" style="background:linear-gradient(135deg,#a0d8ff,#7ff0d7);">M</div>
-            <div class="activity-body">
-              <strong>Maria</strong>
-              <small>Projetou melhor volume</small>
-            </div>
-            <div class="activity-stat">+16%</div>
-          </div>
-        </div>
+        `}
       </div>
     </div>
     ${renderNavBar()}
@@ -1084,9 +1090,154 @@ function renderHistoricoScreen() {
   })();
 }
 
+function renderExerciseManagementScreen() {
+  const screen = document.getElementById('screen-exercicios');
+  if (!screen) return;
+
+  const exerciseList = AppState.exercises.length ? AppState.exercises : [];
+
+  screen.innerHTML = `
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <div class="brand">Exercícios</div>
+          <small style="color:var(--muted);">Gerencie a biblioteca pessoal</small>
+        </div>
+        <button class="primary-btn" id="new-exercise-btn">+ Novo</button>
+      </header>
+
+      <div class="screen-card">
+        <div class="mini-topline">
+          <span>Lista de exercícios</span>
+          <button class="chip-btn">${exerciseList.length} itens</button>
+        </div>
+
+        <div class="exercise-library-search" style="margin-bottom:12px;">
+          <input id="exercise-library-search" type="text" placeholder="Buscar exercício ou grupo muscular" style="width:100%; min-height:48px; border-radius:12px; border:1px solid var(--border); background:var(--panel-soft); color:var(--text); padding: 0 14px;" />
+        </div>
+
+        ${exerciseList.length ? `
+          <div class="list">
+            ${exerciseList.map((exercise) => `
+              <div class="list-item exercise-library-item" data-exercise-id="${exercise.id}">
+                <div>
+                  <strong>${exercise.name}</strong>
+                  <div style="color:var(--muted); font-size:0.8rem;">${exercise.muscle_group || 'Grupo muscular'} · ${exercise.equipment || 'Sem equipamento'}</div>
+                </div>
+                <div class="btn-row">
+                  <button class="icon-btn" data-edit-exercise="${exercise.id}" title="Editar">✎</button>
+                  <button class="icon-btn" data-delete-exercise="${exercise.id}" title="Excluir">✕</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div class="empty-state compact-empty">
+            <strong>💪</strong>
+            Sua biblioteca está vazia. Adicione o primeiro exercício.
+          </div>
+        `}
+      </div>
+    </div>
+    ${renderNavBar()}
+  `;
+
+  document.getElementById('new-exercise-btn').addEventListener('click', openExerciseModal);
+
+  const searchInput = document.getElementById('exercise-library-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (event) => {
+      const query = event.target.value.toLowerCase();
+      const items = Array.from(document.querySelectorAll('.exercise-library-item'));
+      items.forEach((item) => {
+        const name = item.querySelector('strong')?.textContent.toLowerCase() || '';
+        const details = item.textContent.toLowerCase();
+        item.style.display = !query || name.includes(query) || details.includes(query) ? '' : 'none';
+      });
+    });
+  }
+
+  document.querySelectorAll('[data-delete-exercise]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (!window.confirm('Excluir este exercício da biblioteca?')) return;
+      try {
+        await window.MeuTreinoAPI.deleteExercise(button.dataset.deleteExercise);
+        await loadUserData();
+        renderExerciseManagementScreen();
+        showToast('Exercício removido.');
+      } catch (error) {
+        showToast(error.message || 'Erro ao remover exercício.');
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-edit-exercise]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const exercise = AppState.exercises.find((item) => item.id === button.dataset.editExercise);
+      if (!exercise) return;
+      const modalRoot = document.getElementById('modal-root');
+      if (!modalRoot) return;
+
+      modalRoot.innerHTML = `
+        <div class="modal-backdrop">
+          <div class="modal-panel">
+            <div class="modal-header">
+              <h3>Editar exercício</h3>
+              <button class="ghost-btn" data-close-modal>Fechar</button>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Nome</label>
+                <input id="exercise-edit-name" type="text" value="${exercise.name || ''}" />
+              </div>
+              <div class="field">
+                <label>Grupo muscular</label>
+                <input id="exercise-edit-muscle" type="text" value="${exercise.muscle_group || ''}" />
+              </div>
+              <div class="field">
+                <label>Equipamento</label>
+                <input id="exercise-edit-equipment" type="text" value="${exercise.equipment || ''}" />
+              </div>
+            </div>
+            <div class="btn-row" style="margin-top:16px; justify-content:flex-end;">
+              <button class="secondary-btn" data-close-modal>Cancelar</button>
+              <button class="primary-btn" id="save-edited-exercise">Salvar</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      modalRoot.querySelectorAll('[data-close-modal]').forEach((btn) => btn.addEventListener('click', () => { modalRoot.innerHTML = ''; }));
+      document.getElementById('save-edited-exercise').addEventListener('click', async () => {
+        const name = document.getElementById('exercise-edit-name').value.trim();
+        const muscle = document.getElementById('exercise-edit-muscle').value.trim();
+        const equipment = document.getElementById('exercise-edit-equipment').value.trim();
+
+        if (!name || !muscle || !equipment) {
+          showToast('Preencha todos os campos.');
+          return;
+        }
+
+        try {
+          await window.MeuTreinoAPI.updateExercise(exercise.id, { name, muscle_group: muscle, equipment, is_custom: true });
+          await loadUserData();
+          modalRoot.innerHTML = '';
+          renderExerciseManagementScreen();
+          showToast('Exercício atualizado.');
+        } catch (error) {
+          showToast(error.message || 'Erro ao atualizar exercício.');
+        }
+      });
+    });
+  });
+}
+
 function renderBibliotecaScreen() {
   const screen = document.getElementById('screen-biblioteca');
   if (!screen) return;
+
+  const completedSessions = AppState.recentSessions.filter((session) => session.status === 'completed');
+  const totalVolume = completedSessions.reduce((sum, session) => sum + Number(session.total_volume || 0), 0);
 
   screen.innerHTML = `
     <div class="app-shell progress-shell">
@@ -1100,53 +1251,55 @@ function renderBibliotecaScreen() {
       <div class="progress-grid">
         <div class="screen-card pr-card">
           <div class="mini-topline"><span>Recordes pessoais</span><button class="chip-btn">PR</button></div>
-          <div class="pr-list">
-            <div class="pr-item">
-              <div class="pr-icon green">🏋️</div>
-              <div class="pr-body">
-                <span>Supino</span>
-                <strong>120 kg</strong>
+          ${completedSessions.length ? `
+            <div class="pr-list">
+              <div class="pr-item">
+                <div class="pr-icon green">🏋️</div>
+                <div class="pr-body">
+                  <span>Volume total</span>
+                  <strong>${Math.round(totalVolume)} kg</strong>
+                </div>
+                <small>+ ${Math.min(20, completedSessions.length * 4)}%</small>
               </div>
-              <small>+ 15%</small>
-            </div>
-            <div class="pr-item">
-              <div class="pr-icon yellow">🏆</div>
-              <div class="pr-body">
-                <span>Agachamento</span>
-                <strong>150 kg</strong>
+              <div class="pr-item">
+                <div class="pr-icon yellow">🏆</div>
+                <div class="pr-body">
+                  <span>Treinos feitos</span>
+                  <strong>${completedSessions.length}</strong>
+                </div>
+                <small>+ ${Math.min(18, completedSessions.length * 3)}%</small>
               </div>
-              <small>+ 8%</small>
-            </div>
-            <div class="pr-item">
-              <div class="pr-icon red">⚡</div>
-              <div class="pr-body">
-                <span>Deadlift</span>
-                <strong>180 kg</strong>
+              <div class="pr-item">
+                <div class="pr-icon red">⚡</div>
+                <div class="pr-body">
+                  <span>Média por treino</span>
+                  <strong>${completedSessions.length ? Math.round(totalVolume / completedSessions.length) : 0} kg</strong>
+                </div>
+                <small>+ ${Math.min(14, completedSessions.length * 2)}%</small>
               </div>
-              <small>+ 11%</small>
             </div>
-          </div>
+          ` : `
+            <div class="empty-state compact-empty">
+              <strong>📉</strong>
+              Conclua o primeiro treino para ver seus dados de progresso.
+            </div>
+          `}
         </div>
 
         <div class="screen-card trend-card">
-          <div class="mini-topline"><span>Tendência</span><button class="chip-btn">Últimos 6 meses</button></div>
-          <div class="trend-chart">
-            <span class="line line-green" style="height:42%"></span>
-            <span class="line line-green" style="height:53%"></span>
-            <span class="line line-green" style="height:60%"></span>
-            <span class="line line-green" style="height:74%"></span>
-            <span class="line line-yellow" style="height:67%"></span>
-            <span class="line line-yellow" style="height:88%"></span>
-          </div>
-        </div>
-      </div>
-
-      <div class="screen-card gallery-card">
-        <div class="mini-topline"><span>Progresso visual</span><button class="chip-btn">Galeria</button></div>
-        <div class="photo-grid">
-          <div class="photo-item photo-one"></div>
-          <div class="photo-item photo-two"></div>
-          <div class="photo-item photo-three"></div>
+          <div class="mini-topline"><span>Tendência</span><button class="chip-btn">Últimos treinos</button></div>
+          ${completedSessions.length ? `
+            <div class="trend-chart">
+              ${completedSessions.slice(0, 6).reverse().map((session) => `
+                <span class="line line-green" style="height:${Math.max(18, Math.min(92, Number(session.total_volume || 0) / 3))}%"></span>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="empty-state compact-empty">
+              <strong>📊</strong>
+              Sem dados suficientes para exibir tendência.
+            </div>
+          `}
         </div>
       </div>
     </div>
@@ -1164,9 +1317,9 @@ function renderWorkoutScreen() {
   const screen = document.getElementById('screen-workout');
   if (!screen) return;
   const currentExercise = routine.exercises[WorkoutLogic.state.currentExerciseIndex];
-  const setRows = WorkoutLogic.getSetRows(currentExercise);
+  const setRowsList = WorkoutLogic.getSetRows(currentExercise);
   const previousOrdinals = { Aquecimento: 0, Preparação: 0, Trabalho: 0 };
-  const rowsWithHistory = setRows.map((row) => {
+  const rowsWithHistory = setRowsList.map((row) => {
     const ordinal = previousOrdinals[row.apiType];
     previousOrdinals[row.apiType] += 1;
     return { ...row, previous: WorkoutLogic.getPreviousLog(currentExercise?.exercise_id, row.apiType, ordinal) };
@@ -1180,7 +1333,7 @@ function renderWorkoutScreen() {
       </header>
 
       <div class="workout-scoreboard">
-        <div class="timer-display">00:32:56</div>
+        <div class="timer-display" id="workout-timer">00:32:56</div>
       </div>
 
       <div class="screen-card workout-panel">
@@ -1201,7 +1354,7 @@ function renderWorkoutScreen() {
             <span>Desc.</span>
           </div>
           ${rowsWithHistory.map((row, index) => `
-            <div class="series-row-item ${row.type === 'Trabalho' ? 'work' : row.type === 'Preparação' ? 'prep' : 'warm'} ${row.previous ? 'filled' : ''}" data-set-type="${row.apiType}" data-set-weight="${row.previous?.weight_kg ?? row.load ?? ''}" data-set-reps="${row.previous?.reps ?? row.reps ?? ''}" data-set-rir="${row.previous?.rir_rpe ?? ''}">
+            <div class="series-row-item ${index === 0 ? 'selected' : ''} ${row.type === 'Trabalho' ? 'work' : row.type === 'Preparação' ? 'prep' : 'warm'} ${row.previous ? 'filled' : ''}" data-set-type="${row.apiType}" data-set-weight="${row.previous?.weight_kg ?? row.load ?? ''}" data-set-reps="${row.previous?.reps ?? row.reps ?? ''}" data-set-rir="${row.previous?.rir_rpe ?? ''}">
               <span class="series-number">${index + 1}</span>
               <span class="series-kind ${row.type === 'Trabalho' ? 'work' : row.type === 'Preparação' ? 'prep' : 'warm'}">${row.type}</span>
               <span>${row.previous?.reps ?? row.reps ?? 0}</span>
@@ -1219,6 +1372,14 @@ function renderWorkoutScreen() {
       </div>
     </div>
   `;
+
+  const setRowsEls = document.querySelectorAll('.series-row-item');
+  setRowsEls.forEach((row) => {
+    row.addEventListener('click', () => {
+      setRowsEls.forEach((item) => item.classList.remove('selected'));
+      row.classList.add('selected');
+    });
+  });
 
   document.getElementById('save-set-btn').addEventListener('click', async () => {
     const currentExercise = routine.exercises[WorkoutLogic.state.currentExerciseIndex];
@@ -1288,7 +1449,7 @@ function renderWorkoutScreen() {
 function renderNavBar() {
   return `
     <nav class="navbar">
-      <div class="navbar-inner">
+      <div class="navbar-inner navbar-inner-wide">
         <button class="nav-btn ${AppState.view === 'dashboard' ? 'active' : ''}" data-view="dashboard">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11.5L12 4l9 7.5"></path><path d="M5 10.5V20h14v-9.5"></path></svg>
           <span class="nav-label">Início</span>
@@ -1296,6 +1457,10 @@ function renderNavBar() {
         <button class="nav-btn ${AppState.view === 'treinos' ? 'active' : ''}" data-view="treinos">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"></path><path d="M9 8h6M9 12h6M9 16h6"></path></svg>
           <span class="nav-label">Fichas</span>
+        </button>
+        <button class="nav-btn ${AppState.view === 'exercicios' ? 'active' : ''}" data-view="exercicios">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 12h14"></path><path d="M8 7h8v10H8z"></path></svg>
+          <span class="nav-label">Exercícios</span>
         </button>
         <button class="nav-btn ${AppState.view === 'historico' ? 'active' : ''}" data-view="historico">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h2l2.5 7 3.5-14 2.5 7H20"></path></svg>
@@ -1367,6 +1532,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     <div id="screen-login" class="screen"></div>
     <div id="screen-dashboard" class="screen"></div>
     <div id="screen-treinos" class="screen"></div>
+    <div id="screen-exercicios" class="screen"></div>
     <div id="screen-historico" class="screen"></div>
     <div id="screen-biblioteca" class="screen"></div>
     <div id="screen-workout" class="screen"></div>
