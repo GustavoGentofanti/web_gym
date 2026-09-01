@@ -166,12 +166,12 @@ function openExerciseModal() {
   });
 }
 
-function createSetEntry(type = 'Trabalho', reps = 8, load = 'Bodyweight', rest = 60) {
+function createSetEntry(type = 'Trabalho', reps = 8, load = '', rest = 60) {
   return {
     id: `${type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     type,
     reps,
-    load,
+    load: typeof load === 'string' ? load.replace(/[^0-9.]/g, '') : '',
     rest,
   };
 }
@@ -218,15 +218,15 @@ function hydrateExerciseDraft(item) {
   const restSeconds = Number(item.rest_seconds || 90);
 
   for (let index = 0; index < warmupCount; index += 1) {
-    legacySeries.push(createSetEntry('Aquecimento', 12, 'Bodyweight', 30));
+    legacySeries.push(createSetEntry('Aquecimento', 12, '', 30));
   }
 
   for (let index = 0; index < prepCount; index += 1) {
-    legacySeries.push(createSetEntry('Preparação', 8, 'Bodyweight', 45));
+    legacySeries.push(createSetEntry('Preparação', 8, '', 45));
   }
 
   for (let index = 0; index < workCount; index += 1) {
-    legacySeries.push(createSetEntry('Trabalho', Math.max(repsMin, repsMax === repsMin ? repsMin : repsMin + (index % 2)), '10kg', restSeconds));
+    legacySeries.push(createSetEntry('Trabalho', Math.max(repsMin, repsMax === repsMin ? repsMin : repsMin + (index % 2)), '10', restSeconds));
   }
 
   return {
@@ -300,7 +300,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
 
                   <label class="compact-field">
                     <span>Carga</span>
-                    <input type="text" value="${entry.load || 'Bodyweight'}" data-series-load="${index}:${entryIndex}" />
+                    <input type="number" min="0" step="0.5" value="${entry.load ? String(entry.load).replace(/[^0-9.]/g, '') : ''}" placeholder="ex: 10" data-series-load="${index}:${entryIndex}" />
                   </label>
 
                   <label class="compact-field">
@@ -323,6 +323,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
 
           <div class="series-footer">
             <button class="soft-btn warm" data-add-series="${index}" data-series-type="Aquecimento">+ Série de Aquecimento</button>
+            <button class="soft-btn prep" data-add-series="${index}" data-series-type="Preparação">+ Série de Preparação</button>
             <button class="soft-btn work" data-add-series="${index}" data-series-type="Trabalho">+ Série de Trabalho</button>
           </div>
         </div>
@@ -347,8 +348,8 @@ function renderRoutineBuilderModal(routineToEdit = null) {
         item.series.push(createSetEntry(
           type,
           type === 'Trabalho' ? 8 : 10,
-          type === 'Trabalho' ? '10kg' : 'Bodyweight',
-          type === 'Aquecimento' ? 30 : 60
+          type === 'Trabalho' ? '10' : '',
+          type === 'Aquecimento' ? 30 : type === 'Preparação' ? 45 : 60
         ));
         renderExerciseManager();
       });
@@ -567,10 +568,10 @@ function renderRoutineBuilderModal(routineToEdit = null) {
       exercise_name: exercise.name,
       muscle_group: exercise.muscle_group,
       series: [
-        createSetEntry('Aquecimento', 12, 'Bodyweight', 30),
-        createSetEntry('Preparação', 8, 'Bodyweight', 45),
-        createSetEntry('Trabalho', 10, '10kg', 60),
-        createSetEntry('Trabalho', 10, '10kg', 60),
+        createSetEntry('Aquecimento', 12, '', 30),
+        createSetEntry('Preparação', 8, '', 45),
+        createSetEntry('Trabalho', 10, '10', 60),
+        createSetEntry('Trabalho', 10, '10', 60),
       ],
     });
 
@@ -631,19 +632,25 @@ function renderLoginScreen() {
   if (!screen) return;
 
   screen.innerHTML = `
-    <div class="app-shell">
+    <div class="app-shell auth-shell">
       <div class="auth-form">
-        <h2>Entrar</h2>
+        <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
+          <span class="brand-mark">GLE</span>
+        </div>
+        <div class="auth-kicker">Gusliniker Legion</div>
+        <h2>Bem-vindo de volta</h2>
         <div class="form-grid">
-          <div class="field">
+          <div class="field field-icon">
             <label for="login-email">E-mail</label>
+            <span class="field-visual">✉</span>
             <input id="login-email" type="email" placeholder="seu@email.com" />
           </div>
-          <div class="field">
+          <div class="field field-icon">
             <label for="login-password">Senha</label>
-            <input id="login-password" type="password" placeholder="Senha" />
+            <span class="field-visual">◌</span>
+            <input id="login-password" type="password" placeholder="Sua senha" />
           </div>
-          <button class="primary-btn" id="login-submit">Entrar</button>
+          <button class="primary-btn auth-cta" id="login-submit">Entrar</button>
         </div>
         <div class="auth-switch">
           <span>Não tem conta?</span>
@@ -678,23 +685,30 @@ function renderRegisterScreen() {
   if (!screen) return;
 
   screen.innerHTML = `
-    <div class="app-shell">
+    <div class="app-shell auth-shell">
       <div class="auth-form">
-        <h2>Criar conta</h2>
+        <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
+          <span class="brand-mark">GLE</span>
+        </div>
+        <div class="auth-kicker">Gusliniker Legion</div>
+        <h2>Crie sua conta</h2>
         <div class="form-grid">
-          <div class="field">
+          <div class="field field-icon">
             <label for="register-name">Nome</label>
+            <span class="field-visual">◉</span>
             <input id="register-name" type="text" placeholder="Seu nome" />
           </div>
-          <div class="field">
+          <div class="field field-icon">
             <label for="register-email">E-mail</label>
+            <span class="field-visual">✉</span>
             <input id="register-email" type="email" placeholder="seu@email.com" />
           </div>
-          <div class="field">
+          <div class="field field-icon">
             <label for="register-password">Senha</label>
+            <span class="field-visual">◌</span>
             <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" />
           </div>
-          <button class="primary-btn" id="register-submit">Cadastrar</button>
+          <button class="primary-btn auth-cta" id="register-submit">Criar conta</button>
         </div>
         <div class="auth-switch">
           <span>Já tem conta?</span>
@@ -980,9 +994,28 @@ function renderHistoricoScreen() {
       const averageVolume = completedSessions.length ? totalVolume / completedSessions.length : 0;
       const chartSessions = completedSessions.slice(0, 7).reverse();
       const chartMax = Math.max(...chartSessions.map((session) => Number(session.total_volume || 0)), 1);
+      const contributionMatrix = Array.from({ length: 12 }, (_, weekIndex) => {
+        return Array.from({ length: 7 }, (_, dayIndex) => {
+          const date = new Date();
+          date.setHours(0, 0, 0, 0);
+          date.setDate(date.getDate() - ((11 - weekIndex) * 7 + (6 - dayIndex)));
+
+          const volume = completedSessions.reduce((sum, session) => {
+            const sessionDate = new Date(session.start_time || session.created_at);
+            const sameDay = sessionDate.toDateString() === date.toDateString();
+            return sameDay ? sum + Number(session.total_volume || 0) : sum;
+          }, 0);
+
+          return {
+            date,
+            volume,
+            level: volume <= 0 ? 0 : volume >= chartMax * 0.9 ? 4 : volume >= chartMax * 0.7 ? 3 : volume >= chartMax * 0.45 ? 2 : 1,
+          };
+        });
+      });
 
       screen.innerHTML = `
-        <div class="app-shell">
+        <div class="app-shell history-shell">
           <header class="topbar">
             <div>
               <div class="brand">Diário</div>
@@ -990,31 +1023,53 @@ function renderHistoricoScreen() {
             </div>
           </header>
 
-          <div class="screen-card" style="margin-bottom:18px;">
+          <section class="screen-card history-calendar-card">
             <div class="mini-topline">
-              <span>Calendário</span>
-              <button class="chip-btn">Agosto</button>
+              <span>Consistência</span>
+              <button class="chip-btn">Últimos 12 semanas</button>
             </div>
-            <div class="week-chart">
-              ${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((day, idx) => `
-                <div class="chart-column">
-                  <div class="chart-bar-wrap" style="height:110px;">
-                    <span class="chart-bar ${idx % 2 === 0 ? 'green' : 'yellow'}" style="height:${[38, 52, 66, 72, 58, 88, 44][idx]}%"></span>
-                  </div>
-                  <span class="chart-label">${day}</span>
+            <div class="contribution-graph">
+              ${contributionMatrix.map((week) => `
+                <div class="contribution-row">
+                  ${week.map((cell) => `
+                    <div class="contribution-cell level-${cell.level}" title="${cell.date.toLocaleDateString('pt-BR')} · ${cell.volume} kg"></div>
+                  `).join('')}
                 </div>
               `).join('')}
             </div>
-          </div>
+            <div class="contribution-legend">
+              <span>Menos</span>
+              <div class="legend-scale">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span>Mais</span>
+            </div>
+          </section>
 
-          <div class="metric-row progress-metrics">
-            <div class="metric"><div class="metric-label">Treinos</div><div class="metric-value">${completedSessions.length}</div></div>
-            <div class="metric"><div class="metric-label">Volume</div><div class="metric-value">${Math.round(totalVolume)} kg</div></div>
-            <div class="metric"><div class="metric-label">Média</div><div class="metric-value">${Math.round(averageVolume)} kg</div></div>
-            <div class="metric"><div class="metric-label">Status</div><div class="metric-value">${completedSessions.length ? 'OK' : '--'}</div></div>
-          </div>
+          <section class="summary-grid">
+            <div class="summary-card">
+              <span class="summary-label">Treinos</span>
+              <strong>${completedSessions.length}</strong>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">Volume</span>
+              <strong>${Math.round(totalVolume)} kg</strong>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">Média</span>
+              <strong>${Math.round(averageVolume)} kg</strong>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">Status</span>
+              <strong>${completedSessions.length ? 'OK' : '--'}</strong>
+            </div>
+          </section>
 
-          <div class="card progress-chart-card">
+          <section class="card progress-chart-card">
             <div class="card-header">
               <div><h3>Volume por treino</h3><small style="color:var(--muted);">Últimos 7 treinos</small></div>
               <span class="progress-accent">KG</span>
@@ -1029,10 +1084,15 @@ function renderHistoricoScreen() {
                   </div>
                 `).join('')}
               </div>
-            ` : '<div class="empty-state compact-empty">Complete seu primeiro treino para desbloquear seus dados.</div>'}
-          </div>
+            ` : `
+              <div class="history-empty-panel">
+                <div class="empty-icon">↗</div>
+                <p>Complete seu primeiro treino para desbloquear seu histórico e acompanhar o progresso.</p>
+              </div>
+            `}
+          </section>
 
-          <div class="list">
+          <section class="card history-list-card">
             ${AppState.recentSessions.length ? AppState.recentSessions.map((session) => `
               <div class="routine-card history-item">
                 <div class="card-header">
@@ -1045,9 +1105,12 @@ function renderHistoricoScreen() {
                 </div>
               </div>
             `).join('') : `
-              <div class="card"><div class="empty-state"><strong>↗</strong>Ainda não há histórico de treinos.</div></div>
+              <div class="history-empty-panel empty-history-panel">
+                <div class="empty-icon">↗</div>
+                <p>Ainda não há histórico de treinos. Quando houver registros, eles aparecem aqui.</p>
+              </div>
             `}
-          </div>
+          </section>
         </div>
         ${renderNavBar()}
       `;
