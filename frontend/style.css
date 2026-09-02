@@ -157,8 +157,8 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .field { display: grid; gap: 8px; position: relative; }
 .field label { color: var(--muted); font-size: 0.86rem; }
 .field-icon { position: relative; }
-.field-icon input { padding-left: 42px; }
-.field-visual { position: absolute; left: 14px; bottom: 16px; color: rgba(255,255,255,0.34); font-size: 0.9rem; }
+.field-icon input { padding-left: 46px; }
+.field-visual { position: absolute; left: 14px; bottom: 16px; color: rgba(255,255,255,0.34); font-size: 0.9rem; z-index: 1; pointer-events: none; }
 .field input, .field select { width: 100%; min-height: 56px; border: 1px solid rgba(151,165,143,0.22); border-radius: 14px; background: rgba(255,255,255,0.025); color: var(--text); padding: 12px 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.02); }
 .field input::placeholder { color: rgba(255,255,255,0.28); }
 .field input:focus, .field select:focus { border-color: rgba(217,245,106,0.82); box-shadow: 0 0 0 3px rgba(217,245,106,0.12), 0 0 22px rgba(217,245,106,0.08); }
@@ -368,12 +368,16 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 
 .exercise-manager-card {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: 14px 12px 12px;
   border-radius: 18px;
   border: 1px solid rgba(164, 181, 132, 0.22);
   background: rgba(255, 255, 255, 0.02);
   animation: series-card-in 220ms ease;
+}
+
+.exercise-manager-card--collapsed {
+  padding: 12px 14px;
 }
 
 @keyframes series-card-in {
@@ -392,6 +396,12 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.exercise-manager-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .exercise-info {
@@ -630,10 +640,25 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
   justify-content: flex-end;
   gap: 12px;
   padding-top: 6px;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(17, 23, 20, 0), rgba(17, 23, 20, 0.9) 26%);
+  padding-bottom: 8px;
 }
 
 .primary-btn.wide {
   min-width: 190px;
+}
+
+.add-exercise-cta {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 6px;
+  border-radius: 14px;
+  font-weight: 700;
+  background: rgba(217, 245, 106, 0.08);
+  border: 1px solid rgba(217, 245, 106, 0.24);
+  color: var(--text);
 }
 
 .primary-btn.primary-cta {
@@ -657,6 +682,18 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 @media (max-width: 620px) {
   .routine-modal {
     padding: 18px 14px;
+  }
+
+  .exercise-manager-header {
+    align-items: flex-start;
+  }
+
+  .exercise-manager-actions {
+    gap: 6px;
+  }
+
+  .exercise-manager-card--collapsed .exercise-manager-header {
+    flex-wrap: wrap;
   }
 
   .series-row {

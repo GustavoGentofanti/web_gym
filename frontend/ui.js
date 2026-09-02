@@ -288,8 +288,10 @@ function renderRoutineBuilderModal(routineToEdit = null) {
 
     container.innerHTML = selectedExercises.map((item, index) => {
       const summary = summarizeExerciseSeries(item.series);
+      const isExpanded = Boolean(item._expanded);
+
       return `
-        <div class="exercise-manager-card" data-exercise-index="${index}">
+        <div class="exercise-manager-card ${isExpanded ? '' : 'exercise-manager-card--collapsed'}" data-exercise-index="${index}">
           <div class="exercise-manager-header">
             <div class="exercise-info">
               <span class="muscle-icon">${item.muscle_group?.toLowerCase().includes('abdômen') || item.muscle_group?.toLowerCase().includes('abdomen') ? '🏋️' : '💪'}</span>
@@ -298,63 +300,83 @@ function renderRoutineBuilderModal(routineToEdit = null) {
                 <small>${item.muscle_group}</small>
               </div>
             </div>
-            <button class="icon-btn ghost-icon" data-remove-routine-item="${index}" title="Remover exercício">✕</button>
+            <div class="exercise-manager-actions">
+              <button class="icon-btn ghost-icon" data-toggle-exercise="${index}" title="${isExpanded ? 'Recolher' : 'Expandir'} exercício">${isExpanded ? '▾' : '✎'}</button>
+              <button class="icon-btn ghost-icon" data-remove-routine-item="${index}" title="Remover exercício">🗑</button>
+            </div>
           </div>
 
-          <div class="series-summary">
-            <span>${summary.target_sets} séries</span>
-            <span>${summary.warmup_sets} aquec.</span>
-            <span>${summary.prep_sets} prep.</span>
-            <span>${summary.target_reps_min}-${summary.target_reps_max} reps</span>
-          </div>
+          ${isExpanded ? `
+            <div class="series-summary">
+              <span>${summary.target_sets} séries</span>
+              <span>${summary.warmup_sets} aquec.</span>
+              <span>${summary.prep_sets} prep.</span>
+              <span>${summary.target_reps_min}-${summary.target_reps_max} reps</span>
+            </div>
 
-          <div class="series-list">
-            ${item.series.map((entry, entryIndex) => {
-              const badgeClass = entry.type === 'Aquecimento' ? 'warm' : entry.type === 'Preparação' ? 'prep' : 'work';
-              const icon = entry.type === 'Aquecimento' ? '↺' : entry.type === 'Preparação' ? '◌' : '✦';
-              return `
-                <div class="series-row ${badgeClass}">
-                  <div class="series-pill ${badgeClass}">
-                    <span>${icon}</span>
-                    ${entry.type}
+            <div class="series-list">
+              ${item.series.map((entry, entryIndex) => {
+                const badgeClass = entry.type === 'Aquecimento' ? 'warm' : entry.type === 'Preparação' ? 'prep' : 'work';
+                const icon = entry.type === 'Aquecimento' ? '↺' : entry.type === 'Preparação' ? '◌' : '✦';
+                return `
+                  <div class="series-row ${badgeClass}">
+                    <div class="series-pill ${badgeClass}">
+                      <span>${icon}</span>
+                      ${entry.type}
+                    </div>
+
+                    <label class="compact-field">
+                      <span>Meta</span>
+                      <input type="text" value="${String(entry.reps || '8-12')}" placeholder="8-12 / até falhar" data-series-reps="${index}:${entryIndex}" />
+                    </label>
+
+                    <label class="compact-field compact-field--optional">
+                      <span>Carga alvo</span>
+                      <input type="number" min="0" step="0.5" value="${entry.load ? String(entry.load).replace(/[^0-9.]/g, '') : ''}" placeholder="opcional" data-series-load="${index}:${entryIndex}" />
+                    </label>
+
+                    <label class="compact-field">
+                      <span>Descanso</span>
+                      <input type="number" min="0" max="600" value="${entry.rest || 60}" data-series-rest="${index}:${entryIndex}" />
+                    </label>
+
+                    <div class="series-actions-inline">
+                      <select class="mini-select" data-series-type="${index}:${entryIndex}">
+                        <option ${entry.type === 'Aquecimento' ? 'selected' : ''}>Aquecimento</option>
+                        <option ${entry.type === 'Preparação' ? 'selected' : ''}>Preparação</option>
+                        <option ${entry.type === 'Trabalho' ? 'selected' : ''}>Trabalho</option>
+                      </select>
+                      <button class="mini-remove" data-remove-series="${index}:${entryIndex}" title="Excluir série">×</button>
+                    </div>
                   </div>
+                `;
+              }).join('')}
+            </div>
 
-                  <label class="compact-field">
-                    <span>Meta</span>
-                    <input type="text" value="${String(entry.reps || '8-12')}" placeholder="8-12 / até falhar" data-series-reps="${index}:${entryIndex}" />
-                  </label>
-
-                  <label class="compact-field compact-field--optional">
-                    <span>Carga alvo</span>
-                    <input type="number" min="0" step="0.5" value="${entry.load ? String(entry.load).replace(/[^0-9.]/g, '') : ''}" placeholder="opcional" data-series-load="${index}:${entryIndex}" />
-                  </label>
-
-                  <label class="compact-field">
-                    <span>Descanso</span>
-                    <input type="number" min="0" max="600" value="${entry.rest || 60}" data-series-rest="${index}:${entryIndex}" />
-                  </label>
-
-                  <div class="series-actions-inline">
-                    <select class="mini-select" data-series-type="${index}:${entryIndex}">
-                      <option ${entry.type === 'Aquecimento' ? 'selected' : ''}>Aquecimento</option>
-                      <option ${entry.type === 'Preparação' ? 'selected' : ''}>Preparação</option>
-                      <option ${entry.type === 'Trabalho' ? 'selected' : ''}>Trabalho</option>
-                    </select>
-                    <button class="mini-remove" data-remove-series="${index}:${entryIndex}" title="Excluir série">×</button>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-
-          <div class="series-footer">
-            <button class="soft-btn warm" data-add-series="${index}" data-series-type="Aquecimento">+ Série de Aquecimento</button>
-            <button class="soft-btn prep" data-add-series="${index}" data-series-type="Preparação">+ Série de Preparação</button>
-            <button class="soft-btn work" data-add-series="${index}" data-series-type="Trabalho">+ Série de Trabalho</button>
-          </div>
+            <div class="series-footer">
+              <button class="soft-btn warm" data-add-series="${index}" data-series-type="Aquecimento">+ Série de Aquecimento</button>
+              <button class="soft-btn prep" data-add-series="${index}" data-series-type="Preparação">+ Série de Preparação</button>
+              <button class="soft-btn work" data-add-series="${index}" data-series-type="Trabalho">+ Série de Trabalho</button>
+            </div>
+          ` : `
+            <div class="series-summary" style="margin-top:0;">
+              <span>${summary.target_sets} Séries</span>
+              <span>${summary.target_reps_min}-${summary.target_reps_max} reps</span>
+              <span>${summary.rest_seconds}s descanso</span>
+            </div>
+          `}
         </div>
       `;
     }).join('');
+
+    container.querySelectorAll('[data-toggle-exercise]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const index = Number(button.dataset.toggleExercise);
+        if (!selectedExercises[index]) return;
+        selectedExercises[index]._expanded = !selectedExercises[index]._expanded;
+        renderExerciseManager();
+      });
+    });
 
     container.querySelectorAll('[data-remove-routine-item]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -492,11 +514,12 @@ function renderRoutineBuilderModal(routineToEdit = null) {
             </div>
 
             <div id="routine-selected-items"></div>
+
+            <button class="add-exercise-cta" id="add-routine-item-btn">+ Adicionar Exercício</button>
           </div>
 
           <div class="routine-footer-actions">
             <button class="secondary-btn" data-close-modal>Cancelar</button>
-            <button class="primary-btn wide" id="add-routine-item-btn">Adicionar exercício</button>
             <button class="primary-btn primary-cta" id="save-routine-btn">${routineToEdit ? 'Salvar ficha' : 'Salvar ficha'}</button>
           </div>
         </div>
@@ -592,11 +615,11 @@ function renderRoutineBuilderModal(routineToEdit = null) {
       exercise_id: exercise.id,
       exercise_name: exercise.name,
       muscle_group: exercise.muscle_group,
+      _expanded: true,
       series: [
-        createSetEntry('Aquecimento', 12, '', 30),
-        createSetEntry('Preparação', 8, '', 45),
-        createSetEntry('Trabalho', 10, '10', 60),
-        createSetEntry('Trabalho', 10, '10', 60),
+        createSetEntry('Aquecimento', '12', '', 30),
+        createSetEntry('Preparação', '8', '', 45),
+        createSetEntry('Trabalho', '8-12', '10', 60),
       ],
     });
 
@@ -660,30 +683,34 @@ function renderLoginScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <svg class="gle-emblem" viewBox="0 0 220 220" role="img" aria-label="GLE emblem">
+          <svg class="gle-emblem" viewBox="0 0 260 180" role="img" aria-label="GLE emblem">
             <defs>
-              <linearGradient id="gleMetal" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#f7f4d4" />
-                <stop offset="18%" stop-color="#d3b85f" />
-                <stop offset="42%" stop-color="#7a6840" />
-                <stop offset="60%" stop-color="#f5e7a8" />
-                <stop offset="100%" stop-color="#41391d" />
+              <linearGradient id="barbellMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#dfe7dc" />
+                <stop offset="18%" stop-color="#9ea79a" />
+                <stop offset="42%" stop-color="#4b5851" />
+                <stop offset="58%" stop-color="#d5d7c7" />
+                <stop offset="100%" stop-color="#1a221f" />
               </linearGradient>
-              <linearGradient id="gleGlass" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#2b4d48" />
-                <stop offset="50%" stop-color="#102c29" />
-                <stop offset="100%" stop-color="#0b1715" />
+              <linearGradient id="barbellGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6fe4b0" />
+                <stop offset="50%" stop-color="#2f7d68" />
+                <stop offset="100%" stop-color="#98d664" />
               </linearGradient>
             </defs>
-            <path d="M110 18L164 52L185 110L164 168L110 202L56 168L35 110L56 52L110 18Z" fill="url(#gleGlass)" stroke="url(#gleMetal)" stroke-width="2.5" />
-            <path d="M110 40L147 66L160 110L147 154L110 180L73 154L60 110L73 66L110 40Z" fill="none" stroke="url(#gleMetal)" stroke-width="3" opacity="0.9"/>
-            <path d="M110 60L120 97H100L110 60Z" fill="url(#gleMetal)" opacity="0.9"/>
-            <path d="M82 90L110 72L138 90L110 108L82 90Z" fill="url(#gleMetal)" opacity="0.8"/>
-            <path d="M90 118L110 104L130 118L110 160L90 118Z" fill="url(#gleMetal)" opacity="0.78"/>
-            <path d="M110 73L96 110H124L110 73Z" fill="#d9f56a" opacity="0.16"/>
-            <path d="M82 90L110 72L138 90" fill="none" stroke="#d9f56a" stroke-width="2.2" opacity="0.5"/>
-            <path d="M110 38V180M60 110H160" stroke="rgba(255,255,255,.12)" stroke-width="1.2"/>
-            <text x="110" y="122" text-anchor="middle" font-size="52" font-weight="900" letter-spacing="10" fill="#e7d88a" font-family="Inter, Segoe UI, sans-serif">GLE</text>
+            <g transform="translate(0 14)">
+              <text x="130" y="38" text-anchor="middle" font-size="28" font-weight="900" letter-spacing="6" fill="#e7edc8" font-family="Inter, Segoe UI, sans-serif">GLE</text>
+              <g transform="translate(48 58)">
+                <rect x="0" y="27" width="164" height="6" rx="3" fill="url(#barbellMetal)" />
+                <rect x="14" y="6" width="20" height="48" rx="6" fill="url(#barbellMetal)" />
+                <rect x="130" y="6" width="20" height="48" rx="6" fill="url(#barbellMetal)" />
+                <circle cx="14" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
+                <circle cx="150" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
+                <circle cx="14" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
+                <circle cx="150" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
+                <rect x="60" y="18" width="46" height="22" rx="7" fill="url(#barbellGlow)" opacity="0.8" />
+              </g>
+            </g>
           </svg>
         </div>
         <div class="auth-kicker">Gusliniker Legion</div>
@@ -737,30 +764,34 @@ function renderRegisterScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <svg class="gle-emblem" viewBox="0 0 220 220" role="img" aria-label="GLE emblem">
+          <svg class="gle-emblem" viewBox="0 0 260 180" role="img" aria-label="GLE emblem">
             <defs>
-              <linearGradient id="gleMetalRegister" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#f7f4d4" />
-                <stop offset="18%" stop-color="#d3b85f" />
-                <stop offset="42%" stop-color="#7a6840" />
-                <stop offset="60%" stop-color="#f5e7a8" />
-                <stop offset="100%" stop-color="#41391d" />
+              <linearGradient id="barbellMetalRegister" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#dfe7dc" />
+                <stop offset="18%" stop-color="#9ea79a" />
+                <stop offset="42%" stop-color="#4b5851" />
+                <stop offset="58%" stop-color="#d5d7c7" />
+                <stop offset="100%" stop-color="#1a221f" />
               </linearGradient>
-              <linearGradient id="gleGlassRegister" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#2b4d48" />
-                <stop offset="50%" stop-color="#102c29" />
-                <stop offset="100%" stop-color="#0b1715" />
+              <linearGradient id="barbellGlowRegister" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6fe4b0" />
+                <stop offset="50%" stop-color="#2f7d68" />
+                <stop offset="100%" stop-color="#98d664" />
               </linearGradient>
             </defs>
-            <path d="M110 18L164 52L185 110L164 168L110 202L56 168L35 110L56 52L110 18Z" fill="url(#gleGlassRegister)" stroke="url(#gleMetalRegister)" stroke-width="2.5" />
-            <path d="M110 40L147 66L160 110L147 154L110 180L73 154L60 110L73 66L110 40Z" fill="none" stroke="url(#gleMetalRegister)" stroke-width="3" opacity="0.9"/>
-            <path d="M110 60L120 97H100L110 60Z" fill="url(#gleMetalRegister)" opacity="0.9"/>
-            <path d="M82 90L110 72L138 90L110 108L82 90Z" fill="url(#gleMetalRegister)" opacity="0.8"/>
-            <path d="M90 118L110 104L130 118L110 160L90 118Z" fill="url(#gleMetalRegister)" opacity="0.78"/>
-            <path d="M110 73L96 110H124L110 73Z" fill="#d9f56a" opacity="0.16"/>
-            <path d="M82 90L110 72L138 90" fill="none" stroke="#d9f56a" stroke-width="2.2" opacity="0.5"/>
-            <path d="M110 38V180M60 110H160" stroke="rgba(255,255,255,.12)" stroke-width="1.2"/>
-            <text x="110" y="122" text-anchor="middle" font-size="52" font-weight="900" letter-spacing="10" fill="#e7d88a" font-family="Inter, Segoe UI, sans-serif">GLE</text>
+            <g transform="translate(0 14)">
+              <text x="130" y="38" text-anchor="middle" font-size="28" font-weight="900" letter-spacing="6" fill="#e7edc8" font-family="Inter, Segoe UI, sans-serif">GLE</text>
+              <g transform="translate(48 58)">
+                <rect x="0" y="27" width="164" height="6" rx="3" fill="url(#barbellMetalRegister)" />
+                <rect x="14" y="6" width="20" height="48" rx="6" fill="url(#barbellMetalRegister)" />
+                <rect x="130" y="6" width="20" height="48" rx="6" fill="url(#barbellMetalRegister)" />
+                <circle cx="14" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
+                <circle cx="150" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
+                <circle cx="14" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
+                <circle cx="150" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
+                <rect x="60" y="18" width="46" height="22" rx="7" fill="url(#barbellGlowRegister)" opacity="0.8" />
+              </g>
+            </g>
           </svg>
         </div>
         <div class="auth-kicker">Gusliniker Legion</div>
