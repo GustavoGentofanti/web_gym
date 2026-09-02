@@ -75,14 +75,14 @@ function applyTheme(mode) {
 async function loadUserData() {
   try {
     const [remoteRoutines, remoteExercises, remoteSessions] = await Promise.all([
-      window.MeuTreinoAPI.getRoutines().catch(() => []),
-      window.MeuTreinoAPI.getExercises().catch(() => []),
-      window.MeuTreinoAPI.getWorkouts().catch(() => [])
+      window.MeuTreinoAPI.getRoutines().catch(() => null),
+      window.MeuTreinoAPI.getExercises().catch(() => null),
+      window.MeuTreinoAPI.getWorkouts().catch(() => null)
     ]);
 
-    AppState.routines = Array.isArray(remoteRoutines) ? remoteRoutines : [];
-    AppState.exercises = Array.isArray(remoteExercises) ? remoteExercises : [];
-    AppState.recentSessions = Array.isArray(remoteSessions) ? remoteSessions : [];
+    if (Array.isArray(remoteRoutines)) AppState.routines = remoteRoutines;
+    if (Array.isArray(remoteExercises)) AppState.exercises = remoteExercises;
+    if (Array.isArray(remoteSessions)) AppState.recentSessions = remoteSessions;
 
     AppState.routines = AppState.routines.map((routine) => ({
       ...routine,
@@ -707,13 +707,17 @@ function renderRoutineBuilderModal(routineToEdit = null) {
         }),
       };
 
+      let savedRoutine;
       if (routineToEdit) {
-        await window.MeuTreinoAPI.updateRoutine(routineToEdit.id, payload);
+        savedRoutine = await window.MeuTreinoAPI.updateRoutine(routineToEdit.id, payload);
       } else {
-        await window.MeuTreinoAPI.createRoutine(payload);
+        savedRoutine = await window.MeuTreinoAPI.createRoutine(payload);
       }
 
       await loadUserData();
+      if (savedRoutine?.id && !AppState.routines.some((routine) => routine.id === savedRoutine.id)) {
+        AppState.routines = [savedRoutine, ...AppState.routines];
+      }
       modalRoot.innerHTML = '';
       renderTreinosScreen();
       setView('treinos');
