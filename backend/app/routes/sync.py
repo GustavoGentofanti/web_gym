@@ -58,6 +58,7 @@ def apply_entry(entry, user_id, db):
                 warmup_sets=item.get("warmup_sets", 0),
                 prep_sets=item.get("prep_sets", 0),
                 target_sets=item["target_sets"],
+                target_reps=item.get("target_reps") or f"{item.get('target_reps_min', 8)}-{item.get('target_reps_max', 12)}",
                 target_reps_min=item["target_reps_min"],
                 target_reps_max=item["target_reps_max"],
                 rest_seconds=item["rest_seconds"],

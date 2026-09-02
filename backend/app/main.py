@@ -43,8 +43,6 @@ def create_db_and_tables():
                 connection.execute(text("ALTER TABLE routine_exercises ADD COLUMN prep_sets INTEGER NOT NULL DEFAULT 0"))
             if "target_reps" not in columns:
                 connection.execute(text("ALTER TABLE routine_exercises ADD COLUMN target_reps VARCHAR(30) DEFAULT '8-12'"))
-            if "target_reps" not in columns:
-                connection.execute(text("ALTER TABLE routine_exercises ADD COLUMN target_reps VARCHAR(30) DEFAULT '8-12'"))
     db = SessionLocal()
     try:
         seed_exercises(db)

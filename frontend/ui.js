@@ -257,15 +257,15 @@ function hydrateExerciseDraft(item) {
   const rangeText = item.target_reps || (repsMin === repsMax ? String(repsMin) : `${repsMin}-${repsMax}`);
 
   for (let index = 0; index < warmupCount; index += 1) {
-    legacySeries.push(createSetEntry('Aquecimento', 12, '', 30));
+    legacySeries.push(createSetEntry('Aquecimento', '10-12', '', 45));
   }
 
   for (let index = 0; index < prepCount; index += 1) {
-    legacySeries.push(createSetEntry('Preparação', 8, '', 45));
+    legacySeries.push(createSetEntry('Preparação', '', '', 60));
   }
 
   for (let index = 0; index < workCount; index += 1) {
-    legacySeries.push(createSetEntry('Trabalho', rangeText, '', restSeconds));
+    legacySeries.push(createSetEntry('Trabalho', rangeText || '', '', restSeconds || 120));
   }
 
   return {
@@ -663,9 +663,9 @@ function renderRoutineBuilderModal(routineToEdit = null) {
       muscle_group: exercise.muscle_group,
       _expanded: true,
       series: [
-        createSetEntry('Aquecimento', '12', '', 30),
-        createSetEntry('Preparação', '8', '', 45),
-        createSetEntry('Trabalho', '8-12', '10', 60),
+        createSetEntry('Aquecimento', '10-12', '', 45),
+        createSetEntry('Preparação', '', '', 60),
+        createSetEntry('Trabalho', '', '', 120),
       ],
     });
 
@@ -691,15 +691,17 @@ function renderRoutineBuilderModal(routineToEdit = null) {
         name,
         exercises: selectedExercises.map((item, orderIndex) => {
           const summary = summarizeExerciseSeries(item.series);
+          const repText = getRepRangeText(item.series);
+
           return {
             exercise_id: item.exercise_id,
             warmup_sets: summary.warmup_sets,
             prep_sets: summary.prep_sets,
             target_sets: summary.target_sets,
-            target_reps: getRepRangeText(item.series),
-            target_reps_min: summary.target_reps_min,
-            target_reps_max: summary.target_reps_max,
-            rest_seconds: summary.rest_seconds,
+            target_reps: repText || '8-12',
+            target_reps_min: Number(summary.target_reps_min || 8),
+            target_reps_max: Number(summary.target_reps_max || 12),
+            rest_seconds: Number(summary.rest_seconds || 90),
             order_index: orderIndex,
           };
         }),
