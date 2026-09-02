@@ -714,6 +714,12 @@ function renderRoutineBuilderModal(routineToEdit = null) {
         savedRoutine = await window.MeuTreinoAPI.createRoutine(payload);
       }
 
+      if (savedRoutine?.id) {
+        await window.MeuTreinoDB.put('routines', {
+          ...savedRoutine,
+          user_id: savedRoutine.user_id || AppState.currentUser?.id,
+        });
+      }
       await loadUserData();
       if (savedRoutine?.id && !AppState.routines.some((routine) => routine.id === savedRoutine.id)) {
         AppState.routines = [savedRoutine, ...AppState.routines];
