@@ -1229,7 +1229,12 @@ function renderTreinosScreen() {
       btn.addEventListener('click', async () => {
         if (!window.confirm('Excluir esta ficha?')) return;
         try {
-          await window.MeuTreinoAPI.deleteRoutine(btn.dataset.id);
+          try {
+            await window.MeuTreinoAPI.deleteRoutine(btn.dataset.id);
+          } catch (error) {
+            if (error.status !== 404) throw error;
+          }
+          await window.MeuTreinoDB.delete('routines', btn.dataset.id);
           await loadUserData();
           renderTreinosScreen();
           setView('treinos');

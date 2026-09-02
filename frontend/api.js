@@ -36,7 +36,9 @@ class ApiClient {
 
     if (!response.ok) {
       const message = typeof payload === 'string' ? payload : (payload.detail || 'Erro ao acessar a API.');
-      throw new Error(message);
+      const error = new Error(message);
+      error.status = response.status;
+      throw error;
     }
 
     return payload;
