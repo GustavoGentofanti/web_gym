@@ -459,6 +459,40 @@ function renderRoutineBuilderModal(routineToEdit = null) {
     return value.includes(searchQuery.toLowerCase());
   });
 
+  const addExerciseToRoutine = (exerciseId) => {
+    const exercise = AppState.exercises.find((item) => item.id === exerciseId);
+    if (!exercise) return;
+
+    const alreadyExists = selectedExercises.some((item) => item.exercise_id === exercise.id);
+    if (alreadyExists) {
+      const panel = document.querySelector('.exercise-search-panel');
+      if (panel) panel.classList.remove('open');
+      renderExerciseManager();
+      return;
+    }
+
+    selectedExercises.push({
+      exercise_id: exercise.id,
+      exercise_name: exercise.name,
+      muscle_group: exercise.muscle_group,
+      _expanded: true,
+      series: [
+        createSetEntry('Aquecimento', '12', '', 30),
+        createSetEntry('Preparação', '8', '', 45),
+        createSetEntry('Trabalho', '8-12', '10', 60),
+      ],
+    });
+
+    const panel = document.querySelector('.exercise-search-panel');
+    if (panel) panel.classList.remove('open');
+
+    renderExerciseManager();
+    const summaryMeta = document.getElementById('series-summary-meta');
+    if (summaryMeta) {
+      summaryMeta.textContent = `${selectedExercises.reduce((count, item) => count + item.series.length, 0)} séries`;
+    }
+  };
+
   modalRoot.innerHTML = `
     <div class="modal-backdrop">
       <div class="modal-panel routine-modal">
@@ -490,7 +524,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
             <div class="exercise-search-panel">
               <div class="search-input-wrap">
                 <span>⌕</span>
-                <input id="routine-exercise-search" type="text" placeholder="Buscar exercício, grupo muscular..." value="${searchQuery}" />
+                <input id="routine-exercise-search" type="text" placeholder="Buscar exercício, grupo muscular..." value="${searchQuery}" class="pl-10" />
               </div>
 
               <div class="search-results">
@@ -513,7 +547,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
               <span id="series-summary-meta">${selectedExercises.reduce((count, item) => count + item.series.length, 0)} séries</span>
             </div>
 
-            <div id="routine-selected-items"></div>
+            <div id="routine-selected-items" class="routine-selected-items"></div>
 
             <button class="add-exercise-cta" id="add-routine-item-btn">+ Adicionar Exercício</button>
           </div>
@@ -567,6 +601,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
         button.addEventListener('click', () => {
           selectedExerciseId = button.dataset.selectExercise;
           updateSelectedExerciseLabel();
+          addExerciseToRoutine(selectedExerciseId);
         });
       });
     });
@@ -576,6 +611,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
     button.addEventListener('click', () => {
       selectedExerciseId = button.dataset.selectExercise;
       updateSelectedExerciseLabel();
+      addExerciseToRoutine(selectedExerciseId);
     });
   });
 
@@ -683,34 +719,23 @@ function renderLoginScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <svg class="gle-emblem" viewBox="0 0 260 180" role="img" aria-label="GLE emblem">
+          <svg class="gle-emblem" viewBox="0 0 280 120" role="img" aria-label="GLE emblem">
             <defs>
-              <linearGradient id="barbellMetal" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#dfe7dc" />
-                <stop offset="18%" stop-color="#9ea79a" />
-                <stop offset="42%" stop-color="#4b5851" />
-                <stop offset="58%" stop-color="#d5d7c7" />
-                <stop offset="100%" stop-color="#1a221f" />
+              <linearGradient id="gleMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f3f4f0" />
+                <stop offset="25%" stop-color="#c5c9c1" />
+                <stop offset="45%" stop-color="#7d867f" />
+                <stop offset="62%" stop-color="#edf0d6" />
+                <stop offset="100%" stop-color="#3e4d45" />
               </linearGradient>
-              <linearGradient id="barbellGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#6fe4b0" />
-                <stop offset="50%" stop-color="#2f7d68" />
-                <stop offset="100%" stop-color="#98d664" />
+              <linearGradient id="gleAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8ae7bc" />
+                <stop offset="50%" stop-color="#cfe6a8" />
+                <stop offset="100%" stop-color="#62b68c" />
               </linearGradient>
             </defs>
-            <g transform="translate(0 14)">
-              <text x="130" y="38" text-anchor="middle" font-size="28" font-weight="900" letter-spacing="6" fill="#e7edc8" font-family="Inter, Segoe UI, sans-serif">GLE</text>
-              <g transform="translate(48 58)">
-                <rect x="0" y="27" width="164" height="6" rx="3" fill="url(#barbellMetal)" />
-                <rect x="14" y="6" width="20" height="48" rx="6" fill="url(#barbellMetal)" />
-                <rect x="130" y="6" width="20" height="48" rx="6" fill="url(#barbellMetal)" />
-                <circle cx="14" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
-                <circle cx="150" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
-                <circle cx="14" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
-                <circle cx="150" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetal)" stroke-width="2.4" />
-                <rect x="60" y="18" width="46" height="22" rx="7" fill="url(#barbellGlow)" opacity="0.8" />
-              </g>
-            </g>
+            <text x="140" y="82" text-anchor="middle" fill="url(#gleMetal)" font-size="68" font-weight="900" font-style="italic" letter-spacing="8" transform="skewX(-10)" font-family="Arial Black, Segoe UI, sans-serif">GLE</text>
+            <path d="M64 86H216" stroke="url(#gleAccent)" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
           </svg>
         </div>
         <div class="auth-kicker">Gusliniker Legion</div>
@@ -719,12 +744,12 @@ function renderLoginScreen() {
           <div class="field field-icon">
             <label for="login-email">E-mail</label>
             <span class="field-visual">✉</span>
-            <input id="login-email" type="email" placeholder="seu@email.com" />
+            <input id="login-email" type="email" placeholder="seu@email.com" class="pl-10" />
           </div>
           <div class="field field-icon">
             <label for="login-password">Senha</label>
             <span class="field-visual">◌</span>
-            <input id="login-password" type="password" placeholder="Sua senha" />
+            <input id="login-password" type="password" placeholder="Sua senha" class="pl-10" />
           </div>
           <button class="primary-btn auth-cta" id="login-submit">Entrar</button>
         </div>
@@ -764,34 +789,23 @@ function renderRegisterScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <svg class="gle-emblem" viewBox="0 0 260 180" role="img" aria-label="GLE emblem">
+          <svg class="gle-emblem" viewBox="0 0 280 120" role="img" aria-label="GLE emblem">
             <defs>
-              <linearGradient id="barbellMetalRegister" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#dfe7dc" />
-                <stop offset="18%" stop-color="#9ea79a" />
-                <stop offset="42%" stop-color="#4b5851" />
-                <stop offset="58%" stop-color="#d5d7c7" />
-                <stop offset="100%" stop-color="#1a221f" />
+              <linearGradient id="gleMetalRegister" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f3f4f0" />
+                <stop offset="25%" stop-color="#c5c9c1" />
+                <stop offset="45%" stop-color="#7d867f" />
+                <stop offset="62%" stop-color="#edf0d6" />
+                <stop offset="100%" stop-color="#3e4d45" />
               </linearGradient>
-              <linearGradient id="barbellGlowRegister" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#6fe4b0" />
-                <stop offset="50%" stop-color="#2f7d68" />
-                <stop offset="100%" stop-color="#98d664" />
+              <linearGradient id="gleAccentRegister" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8ae7bc" />
+                <stop offset="50%" stop-color="#cfe6a8" />
+                <stop offset="100%" stop-color="#62b68c" />
               </linearGradient>
             </defs>
-            <g transform="translate(0 14)">
-              <text x="130" y="38" text-anchor="middle" font-size="28" font-weight="900" letter-spacing="6" fill="#e7edc8" font-family="Inter, Segoe UI, sans-serif">GLE</text>
-              <g transform="translate(48 58)">
-                <rect x="0" y="27" width="164" height="6" rx="3" fill="url(#barbellMetalRegister)" />
-                <rect x="14" y="6" width="20" height="48" rx="6" fill="url(#barbellMetalRegister)" />
-                <rect x="130" y="6" width="20" height="48" rx="6" fill="url(#barbellMetalRegister)" />
-                <circle cx="14" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
-                <circle cx="150" cy="12" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
-                <circle cx="14" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
-                <circle cx="150" cy="60" r="12" fill="#1b2422" stroke="url(#barbellMetalRegister)" stroke-width="2.4" />
-                <rect x="60" y="18" width="46" height="22" rx="7" fill="url(#barbellGlowRegister)" opacity="0.8" />
-              </g>
-            </g>
+            <text x="140" y="82" text-anchor="middle" fill="url(#gleMetalRegister)" font-size="68" font-weight="900" font-style="italic" letter-spacing="8" transform="skewX(-10)" font-family="Arial Black, Segoe UI, sans-serif">GLE</text>
+            <path d="M64 86H216" stroke="url(#gleAccentRegister)" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
           </svg>
         </div>
         <div class="auth-kicker">Gusliniker Legion</div>
@@ -800,17 +814,17 @@ function renderRegisterScreen() {
           <div class="field field-icon">
             <label for="register-name">Nome</label>
             <span class="field-visual">◉</span>
-            <input id="register-name" type="text" placeholder="Seu nome" />
+            <input id="register-name" type="text" placeholder="Seu nome" class="pl-10" />
           </div>
           <div class="field field-icon">
             <label for="register-email">E-mail</label>
             <span class="field-visual">✉</span>
-            <input id="register-email" type="email" placeholder="seu@email.com" />
+            <input id="register-email" type="email" placeholder="seu@email.com" class="pl-10" />
           </div>
           <div class="field field-icon">
             <label for="register-password">Senha</label>
             <span class="field-visual">◌</span>
-            <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" />
+            <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" class="pl-10" />
           </div>
           <button class="primary-btn auth-cta" id="register-submit">Criar conta</button>
         </div>
