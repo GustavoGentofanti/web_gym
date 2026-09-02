@@ -166,12 +166,37 @@ function openExerciseModal() {
   });
 }
 
+function parseRepTarget(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return { min: 8, max: 12, text: '8-12' };
+
+  const rangeMatch = raw.match(/(\d+)\s*(?:-|–|a|ao)\s*(\d+)/i);
+  if (rangeMatch) {
+    return {
+      min: Number(rangeMatch[1]),
+      max: Number(rangeMatch[2]),
+      text: raw,
+    };
+  }
+
+  const directValue = Number(String(raw).replace(/[^0-9]/g, ''));
+  if (!Number.isNaN(directValue)) {
+    return {
+      min: directValue,
+      max: directValue,
+      text: raw,
+    };
+  }
+
+  return { min: 8, max: 12, text: raw };
+}
+
 function createSetEntry(type = 'Trabalho', reps = 8, load = '', rest = 60) {
   return {
     id: `${type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     type,
-    reps,
-    load: typeof load === 'string' ? load.replace(/[^0-9.]/g, '') : '',
+    reps: String(reps ?? '').trim() || '8-12',
+    load: typeof load === 'string' ? load.trim() : '',
     rest,
   };
 }
@@ -191,7 +216,8 @@ function summarizeExerciseSeries(series = []) {
     }
 
     if (entry.type === 'Trabalho') {
-      workReps.push(Number(entry.reps || 0));
+      const parsed = parseRepTarget(entry.reps);
+      workReps.push(parsed.min, parsed.max);
       if (entry.rest) {
         restSeconds = Number(entry.rest) || restSeconds;
       }
@@ -294,17 +320,17 @@ function renderRoutineBuilderModal(routineToEdit = null) {
                   </div>
 
                   <label class="compact-field">
-                    <span>Reps</span>
-                    <input type="number" min="1" max="50" value="${entry.reps}" data-series-reps="${index}:${entryIndex}" />
+                    <span>Meta</span>
+                    <input type="text" value="${String(entry.reps || '8-12')}" placeholder="8-12 / até falhar" data-series-reps="${index}:${entryIndex}" />
+                  </label>
+
+                  <label class="compact-field compact-field--optional">
+                    <span>Carga alvo</span>
+                    <input type="number" min="0" step="0.5" value="${entry.load ? String(entry.load).replace(/[^0-9.]/g, '') : ''}" placeholder="opcional" data-series-load="${index}:${entryIndex}" />
                   </label>
 
                   <label class="compact-field">
-                    <span>Carga</span>
-                    <input type="number" min="0" step="0.5" value="${entry.load ? String(entry.load).replace(/[^0-9.]/g, '') : ''}" placeholder="ex: 10" data-series-load="${index}:${entryIndex}" />
-                  </label>
-
-                  <label class="compact-field">
-                    <span>Desc.</span>
+                    <span>Descanso</span>
                     <input type="number" min="0" max="600" value="${entry.rest || 60}" data-series-rest="${index}:${entryIndex}" />
                   </label>
 
@@ -368,9 +394,8 @@ function renderRoutineBuilderModal(routineToEdit = null) {
     container.querySelectorAll('[data-series-reps]').forEach((input) => {
       input.addEventListener('input', (event) => {
         const [exerciseIndex, seriesIndex] = event.target.dataset.seriesReps.split(':').map(Number);
-        const value = Number(event.target.value || 0);
         if (selectedExercises[exerciseIndex]?.series[seriesIndex]) {
-          selectedExercises[exerciseIndex].series[seriesIndex].reps = value;
+          selectedExercises[exerciseIndex].series[seriesIndex].reps = event.target.value || '8-12';
         }
       });
     });
@@ -379,7 +404,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
       input.addEventListener('input', (event) => {
         const [exerciseIndex, seriesIndex] = event.target.dataset.seriesLoad.split(':').map(Number);
         if (selectedExercises[exerciseIndex]?.series[seriesIndex]) {
-          selectedExercises[exerciseIndex].series[seriesIndex].load = event.target.value || 'Bodyweight';
+          selectedExercises[exerciseIndex].series[seriesIndex].load = event.target.value ? event.target.value : '';
         }
       });
     });
@@ -635,7 +660,31 @@ function renderLoginScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <span class="brand-mark">GLE</span>
+          <svg class="gle-emblem" viewBox="0 0 220 220" role="img" aria-label="GLE emblem">
+            <defs>
+              <linearGradient id="gleMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f7f4d4" />
+                <stop offset="18%" stop-color="#d3b85f" />
+                <stop offset="42%" stop-color="#7a6840" />
+                <stop offset="60%" stop-color="#f5e7a8" />
+                <stop offset="100%" stop-color="#41391d" />
+              </linearGradient>
+              <linearGradient id="gleGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2b4d48" />
+                <stop offset="50%" stop-color="#102c29" />
+                <stop offset="100%" stop-color="#0b1715" />
+              </linearGradient>
+            </defs>
+            <path d="M110 18L164 52L185 110L164 168L110 202L56 168L35 110L56 52L110 18Z" fill="url(#gleGlass)" stroke="url(#gleMetal)" stroke-width="2.5" />
+            <path d="M110 40L147 66L160 110L147 154L110 180L73 154L60 110L73 66L110 40Z" fill="none" stroke="url(#gleMetal)" stroke-width="3" opacity="0.9"/>
+            <path d="M110 60L120 97H100L110 60Z" fill="url(#gleMetal)" opacity="0.9"/>
+            <path d="M82 90L110 72L138 90L110 108L82 90Z" fill="url(#gleMetal)" opacity="0.8"/>
+            <path d="M90 118L110 104L130 118L110 160L90 118Z" fill="url(#gleMetal)" opacity="0.78"/>
+            <path d="M110 73L96 110H124L110 73Z" fill="#d9f56a" opacity="0.16"/>
+            <path d="M82 90L110 72L138 90" fill="none" stroke="#d9f56a" stroke-width="2.2" opacity="0.5"/>
+            <path d="M110 38V180M60 110H160" stroke="rgba(255,255,255,.12)" stroke-width="1.2"/>
+            <text x="110" y="122" text-anchor="middle" font-size="52" font-weight="900" letter-spacing="10" fill="#e7d88a" font-family="Inter, Segoe UI, sans-serif">GLE</text>
+          </svg>
         </div>
         <div class="auth-kicker">Gusliniker Legion</div>
         <h2>Bem-vindo de volta</h2>
@@ -688,7 +737,31 @@ function renderRegisterScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <span class="brand-mark">GLE</span>
+          <svg class="gle-emblem" viewBox="0 0 220 220" role="img" aria-label="GLE emblem">
+            <defs>
+              <linearGradient id="gleMetalRegister" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f7f4d4" />
+                <stop offset="18%" stop-color="#d3b85f" />
+                <stop offset="42%" stop-color="#7a6840" />
+                <stop offset="60%" stop-color="#f5e7a8" />
+                <stop offset="100%" stop-color="#41391d" />
+              </linearGradient>
+              <linearGradient id="gleGlassRegister" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2b4d48" />
+                <stop offset="50%" stop-color="#102c29" />
+                <stop offset="100%" stop-color="#0b1715" />
+              </linearGradient>
+            </defs>
+            <path d="M110 18L164 52L185 110L164 168L110 202L56 168L35 110L56 52L110 18Z" fill="url(#gleGlassRegister)" stroke="url(#gleMetalRegister)" stroke-width="2.5" />
+            <path d="M110 40L147 66L160 110L147 154L110 180L73 154L60 110L73 66L110 40Z" fill="none" stroke="url(#gleMetalRegister)" stroke-width="3" opacity="0.9"/>
+            <path d="M110 60L120 97H100L110 60Z" fill="url(#gleMetalRegister)" opacity="0.9"/>
+            <path d="M82 90L110 72L138 90L110 108L82 90Z" fill="url(#gleMetalRegister)" opacity="0.8"/>
+            <path d="M90 118L110 104L130 118L110 160L90 118Z" fill="url(#gleMetalRegister)" opacity="0.78"/>
+            <path d="M110 73L96 110H124L110 73Z" fill="#d9f56a" opacity="0.16"/>
+            <path d="M82 90L110 72L138 90" fill="none" stroke="#d9f56a" stroke-width="2.2" opacity="0.5"/>
+            <path d="M110 38V180M60 110H160" stroke="rgba(255,255,255,.12)" stroke-width="1.2"/>
+            <text x="110" y="122" text-anchor="middle" font-size="52" font-weight="900" letter-spacing="10" fill="#e7d88a" font-family="Inter, Segoe UI, sans-serif">GLE</text>
+          </svg>
         </div>
         <div class="auth-kicker">Gusliniker Legion</div>
         <h2>Crie sua conta</h2>
