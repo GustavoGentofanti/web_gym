@@ -191,13 +191,14 @@ function parseRepTarget(value) {
   return { min: 8, max: 12, text: raw };
 }
 
-function createSetEntry(type = 'Trabalho', reps = 8, load = '', rest = 60) {
+function createSetEntry(type = 'Trabalho', reps = '8-12', load = '', rest = 60) {
+  const normalizedReps = typeof reps === 'string' ? reps.trim() : String(reps ?? '').trim();
   return {
     id: `${type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     type,
-    reps: String(reps ?? '').trim() || '8-12',
+    reps: normalizedReps || '',
     load: typeof load === 'string' ? load.trim() : '',
-    rest,
+    rest: Number(rest) || 0,
   };
 }
 
@@ -327,17 +328,12 @@ function renderRoutineBuilderModal(routineToEdit = null) {
 
                     <label class="compact-field">
                       <span>Meta</span>
-                      <input type="text" value="${String(entry.reps || '8-12')}" placeholder="8-12 / até falhar" data-series-reps="${index}:${entryIndex}" />
-                    </label>
-
-                    <label class="compact-field compact-field--optional">
-                      <span>Carga alvo</span>
-                      <input type="number" min="0" step="0.5" value="${entry.load ? String(entry.load).replace(/[^0-9.]/g, '') : ''}" placeholder="opcional" data-series-load="${index}:${entryIndex}" />
+                      <input type="text" value="${String(entry.reps ?? '')}" placeholder="8-12 / até falhar" data-series-reps="${index}:${entryIndex}" />
                     </label>
 
                     <label class="compact-field">
                       <span>Descanso</span>
-                      <input type="number" min="0" max="600" value="${entry.rest || 60}" data-series-rest="${index}:${entryIndex}" />
+                      <input type="number" min="0" max="600" value="${Number(entry.rest) || 0}" data-series-rest="${index}:${entryIndex}" />
                     </label>
 
                     <div class="series-actions-inline">
@@ -393,12 +389,14 @@ function renderRoutineBuilderModal(routineToEdit = null) {
         const item = selectedExercises[exerciseIndex];
         if (!item) return;
 
-        item.series.push(createSetEntry(
-          type,
-          type === 'Trabalho' ? 8 : 10,
-          type === 'Trabalho' ? '10' : '',
-          type === 'Aquecimento' ? 30 : type === 'Preparação' ? 45 : 60
-        ));
+        const defaults = {
+          Aquecimento: { reps: '10-12', rest: 45 },
+          Preparação: { reps: '', rest: 60 },
+          Trabalho: { reps: '', rest: 120 },
+        };
+
+        const config = defaults[type] || defaults.Trabalho;
+        item.series.push(createSetEntry(type, config.reps, '', config.rest));
         renderExerciseManager();
       });
     });
@@ -477,9 +475,9 @@ function renderRoutineBuilderModal(routineToEdit = null) {
       muscle_group: exercise.muscle_group,
       _expanded: true,
       series: [
-        createSetEntry('Aquecimento', '12', '', 30),
-        createSetEntry('Preparação', '8', '', 45),
-        createSetEntry('Trabalho', '8-12', '10', 60),
+        createSetEntry('Aquecimento', '10-12', '', 45),
+        createSetEntry('Preparação', '', '', 60),
+        createSetEntry('Trabalho', '', '', 120),
       ],
     });
 
@@ -1016,6 +1014,24 @@ function renderDashboardScreen() {
   document.getElementById('dashboard-start-btn').addEventListener('click', () => startWorkoutFlow());
 }
 
+function getRoutineVolumeByMuscle(routine) {
+  const totals = {};
+  const items = Array.isArray(routine?.exercises) ? routine.exercises : [];
+
+  items.forEach((item) => {
+    const muscleName = item.muscle_group || AppState.exercises.find((exercise) => exercise.id === item.exercise_id)?.muscle_group || 'Músculo';
+    const directSeries = Array.isArray(item.series) ? item.series : [];
+    const workSets = directSeries.length
+      ? directSeries.filter((entry) => entry.type === 'Trabalho').length
+      : Number(item.target_sets || 0);
+
+    if (!workSets) return;
+    totals[muscleName] = (totals[muscleName] || 0) + Number(workSets);
+  });
+
+  return Object.entries(totals).sort((a, b) => b[1] - a[1]);
+}
+
 function renderTreinosScreen() {
   const screen = document.getElementById('screen-treinos');
   if (!screen) return;
@@ -1044,31 +1060,41 @@ function renderTreinosScreen() {
     `;
     document.getElementById('empty-create-routine').addEventListener('click', () => renderRoutineBuilderModal());
   } else {
-    list.innerHTML = AppState.routines.map((routine) => `
-      <div class="routine-card-feature">
-        <div class="card-header">
-          <h3>${routine.name}</h3>
-          <div class="btn-row">
-            <button class="icon-btn" data-action="start" data-id="${routine.id}">▶</button>
-            <button class="icon-btn" data-action="edit" data-id="${routine.id}" title="Editar ficha">✎</button>
-            <button class="icon-btn" data-action="delete" data-id="${routine.id}">✕</button>
+    list.innerHTML = AppState.routines.map((routine) => {
+      const volumeSummary = getRoutineVolumeByMuscle(routine);
+      const volumeText = volumeSummary.length
+        ? volumeSummary.map(([muscle, total]) => `${muscle}: ${total} séries`).join(' | ')
+        : 'Sem volume de trabalho';
+
+      return `
+        <div class="routine-card-feature">
+          <div class="card-header">
+            <h3>${routine.name}</h3>
+            <div class="btn-row">
+              <button class="icon-btn" data-action="start" data-id="${routine.id}">▶</button>
+              <button class="icon-btn" data-action="edit" data-id="${routine.id}" title="Editar ficha">✎</button>
+              <button class="icon-btn" data-action="delete" data-id="${routine.id}">✕</button>
+            </div>
+          </div>
+          <div class="routine-meta">
+            <span class="meta-badge good">${(routine.exercises || []).length} exercícios</span>
+            <span class="meta-badge">${Math.max(20, (routine.exercises || []).length * 18)} min</span>
+            <span class="meta-badge hot">Superior</span>
+          </div>
+          <div class="routine-volume-row">
+            <span>${volumeText}</span>
+          </div>
+          <div class="list" style="margin-top:14px;">
+            ${(routine.exercises || []).map((item) => `
+              <div class="list-item">
+                <span>${item.exercise_name || item.exercise_id}</span>
+                <strong>${item.target_sets || 1}x${item.target_reps_min || 8}-${item.target_reps_max || 12}</strong>
+              </div>
+            `).join('')}
           </div>
         </div>
-        <div class="routine-meta">
-          <span class="meta-badge good">${(routine.exercises || []).length} exercícios</span>
-          <span class="meta-badge">${Math.max(20, (routine.exercises || []).length * 18)} min</span>
-          <span class="meta-badge hot">Superior</span>
-        </div>
-        <div class="list" style="margin-top:14px;">
-          ${(routine.exercises || []).slice(0, 3).map((item) => `
-            <div class="list-item">
-              <span>${item.exercise_name || item.exercise_id}</span>
-              <strong>${item.target_sets || 1}x${item.target_reps_min || 8}-${item.target_reps_max || 12}</strong>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     list.querySelectorAll('[data-action="start"]').forEach((btn) => {
       btn.addEventListener('click', () => startWorkoutFlow(btn.dataset.id));

@@ -835,10 +835,27 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .activity-body strong { display: block; font-size: 0.92rem; }
 .activity-body small { color: var(--muted); }
 .activity-stat { font-weight: 800; font-size: 0.82rem; color: var(--primary); }
-.routine-card-grid { display: grid; gap: 16px; }
-.routine-card-feature { padding: 18px; border: 1px solid rgba(164, 181, 132, 0.25); background: rgba(12,17,15,0.7); border-radius: 20px; }
+.routine-card-grid { display: grid; gap: 18px; }
+.routine-card-feature {
+  padding: 18px;
+  border: 1px solid rgba(164, 181, 132, 0.28);
+  background: linear-gradient(180deg, rgba(12,17,15,0.94), rgba(14,19,18,0.74));
+  border-radius: 22px;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255,255,255,0.03);
+}
 .routine-card-feature .card-header { margin-bottom: 16px; }
-.routine-card-feature h3 { font-size: 1.35rem; letter-spacing: -0.04em; }
+.routine-card-feature h3 { font-size: clamp(1.5rem, 2vw, 2rem); letter-spacing: -0.05em; }
+.routine-volume-row {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(140, 153, 146, 0.18);
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
 .routine-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .meta-badge { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--muted); font-size: 0.72rem; }
 .meta-badge.hot { background: rgba(255,126,114,0.08); border-color: rgba(255,126,114,0.28); color: #ffb0a8; }
