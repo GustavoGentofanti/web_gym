@@ -719,26 +719,53 @@ function renderLoginScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <svg class="gle-emblem" viewBox="0 0 280 120" role="img" aria-label="GLE emblem">
+          <svg class="gle-emblem" viewBox="0 0 440 210" role="img" aria-label="GLE emblem">
             <defs>
               <linearGradient id="gleMetal" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#f3f4f0" />
-                <stop offset="25%" stop-color="#c5c9c1" />
-                <stop offset="45%" stop-color="#7d867f" />
-                <stop offset="62%" stop-color="#edf0d6" />
-                <stop offset="100%" stop-color="#3e4d45" />
+                <stop offset="0%" stop-color="#f7f7f3" />
+                <stop offset="18%" stop-color="#dfe3d1" />
+                <stop offset="45%" stop-color="#8f9386" />
+                <stop offset="62%" stop-color="#f4f2db" />
+                <stop offset="100%" stop-color="#3b423c" />
               </linearGradient>
-              <linearGradient id="gleAccent" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#8ae7bc" />
-                <stop offset="50%" stop-color="#cfe6a8" />
-                <stop offset="100%" stop-color="#62b68c" />
+              <linearGradient id="gleGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#7df0b0" />
+                <stop offset="45%" stop-color="#b6f06d" />
+                <stop offset="100%" stop-color="#4cc58d" />
+              </linearGradient>
+              <linearGradient id="gleShadow" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0f1817" />
+                <stop offset="100%" stop-color="#1e2828" />
               </linearGradient>
             </defs>
-            <text x="140" y="82" text-anchor="middle" fill="url(#gleMetal)" font-size="68" font-weight="900" font-style="italic" letter-spacing="8" transform="skewX(-10)" font-family="Arial Black, Segoe UI, sans-serif">GLE</text>
-            <path d="M64 86H216" stroke="url(#gleAccent)" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+
+            <g transform="translate(30 10)">
+              <path d="M45 120L84 69L126 56L171 62L200 76L215 110L188 142L141 155L85 151L57 138L45 120Z" fill="url(#gleShadow)" stroke="url(#gleMetal)" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M78 118L123 80L175 82L203 108L162 132L108 137L78 118Z" fill="rgba(162,255,208,0.12)" stroke="url(#gleGreen)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M70 95L96 108L110 82L130 72L162 81L188 105L170 126L122 129L104 117L88 125L70 95Z" fill="url(#gleGreen)" opacity="0.14"/>
+
+              <path d="M54 118L30 84L72 70L94 92L54 118Z" fill="url(#gleMetal)" stroke="url(#gleGreen)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M214 112L238 88L280 96L290 124L254 143L214 112Z" fill="url(#gleMetal)" stroke="url(#gleGreen)" stroke-width="3" stroke-linejoin="round"/>
+
+              <path d="M162 61L210 20L232 54L197 65L162 61Z" fill="url(#gleMetal)" stroke="url(#gleGreen)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M112 72L145 30L174 58L138 82L112 72Z" fill="url(#gleMetal)" stroke="url(#gleGreen)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M158 40L206 20L232 55L181 62L158 40Z" fill="rgba(255,255,255,0.08)"/>
+
+              <path d="M112 84L148 55L206 65L183 97L119 100L112 84Z" fill="url(#gleMetal)" stroke="url(#gleGreen)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M119 101L149 109L177 103L197 115L181 132L130 136L115 116L119 101Z" fill="url(#gleShadow)" stroke="url(#gleMetal)" stroke-width="3" stroke-linejoin="round"/>
+              <circle cx="151" cy="91" r="9" fill="url(#gleGreen)"/>
+
+              <path d="M118 117L86 130L79 156L116 142L118 117Z" fill="url(#gleMetal)" stroke="url(#gleGreen)" stroke-width="2.8" stroke-linejoin="round"/>
+              <path d="M191 127L222 149L214 176L181 152L191 127Z" fill="url(#gleMetal)" stroke="url(#gleGreen)" stroke-width="2.8" stroke-linejoin="round"/>
+
+              <g transform="translate(86 26)">
+                <text x="96" y="90" text-anchor="middle" fill="url(#gleMetal)" font-size="60" font-weight="900" font-style="italic" letter-spacing="8" transform="skewX(-12)" font-family="Arial Black, Segoe UI, sans-serif">GLE</text>
+              </g>
+            </g>
           </svg>
         </div>
-        <div class="auth-kicker">Gusliniker Legion</div>
+
+        <div class="auth-kicker">GUSLINIKER LEGION</div>
         <h2>Bem-vindo de volta</h2>
         <div class="form-grid">
           <div class="field field-icon">
@@ -789,26 +816,53 @@ function renderRegisterScreen() {
     <div class="app-shell auth-shell">
       <div class="auth-form">
         <div class="auth-brandmark" aria-label="Gusliniker Legion logo">
-          <svg class="gle-emblem" viewBox="0 0 280 120" role="img" aria-label="GLE emblem">
+          <svg class="gle-emblem" viewBox="0 0 440 210" role="img" aria-label="GLE emblem">
             <defs>
               <linearGradient id="gleMetalRegister" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#f3f4f0" />
-                <stop offset="25%" stop-color="#c5c9c1" />
-                <stop offset="45%" stop-color="#7d867f" />
-                <stop offset="62%" stop-color="#edf0d6" />
-                <stop offset="100%" stop-color="#3e4d45" />
+                <stop offset="0%" stop-color="#f7f7f3" />
+                <stop offset="18%" stop-color="#dfe3d1" />
+                <stop offset="45%" stop-color="#8f9386" />
+                <stop offset="62%" stop-color="#f4f2db" />
+                <stop offset="100%" stop-color="#3b423c" />
               </linearGradient>
-              <linearGradient id="gleAccentRegister" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#8ae7bc" />
-                <stop offset="50%" stop-color="#cfe6a8" />
-                <stop offset="100%" stop-color="#62b68c" />
+              <linearGradient id="gleGreenRegister" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#7df0b0" />
+                <stop offset="45%" stop-color="#b6f06d" />
+                <stop offset="100%" stop-color="#4cc58d" />
+              </linearGradient>
+              <linearGradient id="gleShadowRegister" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0f1817" />
+                <stop offset="100%" stop-color="#1e2828" />
               </linearGradient>
             </defs>
-            <text x="140" y="82" text-anchor="middle" fill="url(#gleMetalRegister)" font-size="68" font-weight="900" font-style="italic" letter-spacing="8" transform="skewX(-10)" font-family="Arial Black, Segoe UI, sans-serif">GLE</text>
-            <path d="M64 86H216" stroke="url(#gleAccentRegister)" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+
+            <g transform="translate(30 10)">
+              <path d="M45 120L84 69L126 56L171 62L200 76L215 110L188 142L141 155L85 151L57 138L45 120Z" fill="url(#gleShadowRegister)" stroke="url(#gleMetalRegister)" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M78 118L123 80L175 82L203 108L162 132L108 137L78 118Z" fill="rgba(162,255,208,0.12)" stroke="url(#gleGreenRegister)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M70 95L96 108L110 82L130 72L162 81L188 105L170 126L122 129L104 117L88 125L70 95Z" fill="url(#gleGreenRegister)" opacity="0.14"/>
+
+              <path d="M54 118L30 84L72 70L94 92L54 118Z" fill="url(#gleMetalRegister)" stroke="url(#gleGreenRegister)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M214 112L238 88L280 96L290 124L254 143L214 112Z" fill="url(#gleMetalRegister)" stroke="url(#gleGreenRegister)" stroke-width="3" stroke-linejoin="round"/>
+
+              <path d="M162 61L210 20L232 54L197 65L162 61Z" fill="url(#gleMetalRegister)" stroke="url(#gleGreenRegister)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M112 72L145 30L174 58L138 82L112 72Z" fill="url(#gleMetalRegister)" stroke="url(#gleGreenRegister)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M158 40L206 20L232 55L181 62L158 40Z" fill="rgba(255,255,255,0.08)"/>
+
+              <path d="M112 84L148 55L206 65L183 97L119 100L112 84Z" fill="url(#gleMetalRegister)" stroke="url(#gleGreenRegister)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M119 101L149 109L177 103L197 115L181 132L130 136L115 116L119 101Z" fill="url(#gleShadowRegister)" stroke="url(#gleMetalRegister)" stroke-width="3" stroke-linejoin="round"/>
+              <circle cx="151" cy="91" r="9" fill="url(#gleGreenRegister)"/>
+
+              <path d="M118 117L86 130L79 156L116 142L118 117Z" fill="url(#gleMetalRegister)" stroke="url(#gleGreenRegister)" stroke-width="2.8" stroke-linejoin="round"/>
+              <path d="M191 127L222 149L214 176L181 152L191 127Z" fill="url(#gleMetalRegister)" stroke="url(#gleGreenRegister)" stroke-width="2.8" stroke-linejoin="round"/>
+
+              <g transform="translate(86 26)">
+                <text x="96" y="90" text-anchor="middle" fill="url(#gleMetalRegister)" font-size="60" font-weight="900" font-style="italic" letter-spacing="8" transform="skewX(-12)" font-family="Arial Black, Segoe UI, sans-serif">GLE</text>
+              </g>
+            </g>
           </svg>
         </div>
-        <div class="auth-kicker">Gusliniker Legion</div>
+
+        <div class="auth-kicker">GUSLINIKER LEGION</div>
         <h2>Crie sua conta</h2>
         <div class="form-grid">
           <div class="field field-icon">
