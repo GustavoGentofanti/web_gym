@@ -74,14 +74,34 @@ function applyTheme(mode) {
 
 async function loadUserData() {
   try {
+    const [localRoutines, localExercises] = await Promise.all([
+      window.MeuTreinoDB.getUserData(AppState.currentUser.id, 'routines').catch(() => []),
+      window.MeuTreinoDB.getUserData(AppState.currentUser.id, 'exercises').catch(() => [])
+    ]);
     const [remoteRoutines, remoteExercises, remoteSessions] = await Promise.all([
       window.MeuTreinoAPI.getRoutines().catch(() => null),
       window.MeuTreinoAPI.getExercises().catch(() => null),
       window.MeuTreinoAPI.getWorkouts().catch(() => null)
     ]);
 
-    if (Array.isArray(remoteRoutines)) AppState.routines = remoteRoutines;
-    if (Array.isArray(remoteExercises)) AppState.exercises = remoteExercises;
+    if (Array.isArray(remoteRoutines)) {
+      const remoteRoutineIds = new Set(remoteRoutines.map((routine) => routine.id));
+      AppState.routines = [
+        ...remoteRoutines,
+        ...localRoutines.filter((routine) => !remoteRoutineIds.has(routine.id))
+      ];
+    } else {
+      AppState.routines = localRoutines;
+    }
+    if (Array.isArray(remoteExercises)) {
+      const remoteExerciseIds = new Set(remoteExercises.map((exercise) => exercise.id));
+      AppState.exercises = [
+        ...remoteExercises,
+        ...localExercises.filter((exercise) => !remoteExerciseIds.has(exercise.id))
+      ];
+    } else {
+      AppState.exercises = localExercises;
+    }
     if (Array.isArray(remoteSessions)) AppState.recentSessions = remoteSessions;
 
     AppState.routines = AppState.routines.map((routine) => ({
