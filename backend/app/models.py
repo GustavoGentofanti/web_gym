@@ -72,6 +72,7 @@ class RoutineExercise(Base):
     warmup_sets = Column(Integer, nullable=False, default=0)
     prep_sets = Column(Integer, nullable=False, default=0)
     target_sets = Column(Integer, nullable=False, default=3)
+    target_reps = Column(String(30), nullable=True, default="8-12")
     target_reps_min = Column(Integer, nullable=False, default=8)
     target_reps_max = Column(Integer, nullable=False, default=12)
     rest_seconds = Column(Integer, nullable=False, default=90)

@@ -837,29 +837,135 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .activity-stat { font-weight: 800; font-size: 0.82rem; color: var(--primary); }
 .routine-card-grid { display: grid; gap: 18px; }
 .routine-card-feature {
-  padding: 18px;
-  border: 1px solid rgba(164, 181, 132, 0.28);
-  background: linear-gradient(180deg, rgba(12,17,15,0.94), rgba(14,19,18,0.74));
-  border-radius: 22px;
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255,255,255,0.03);
+  padding: 20px 18px 18px;
+  border: 1px solid rgba(164, 181, 132, 0.24);
+  background: linear-gradient(180deg, rgba(12,17,15,0.96), rgba(15,21,19,0.82));
+  border-radius: 24px;
+  box-shadow: 0 24px 38px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255,255,255,0.04);
 }
-.routine-card-feature .card-header { margin-bottom: 16px; }
-.routine-card-feature h3 { font-size: clamp(1.5rem, 2vw, 2rem); letter-spacing: -0.05em; }
-.routine-volume-row {
-  margin-top: 14px;
-  padding: 10px 12px;
-  border-radius: 12px;
+.routine-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.routine-title-wrap { flex: 1; }
+.routine-card-feature h3 {
+  margin: 0;
+  font-size: clamp(1.9rem, 2vw, 2.5rem);
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+.routine-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon-btn-soft {
   background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(140, 153, 146, 0.18);
-  color: var(--muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  line-height: 1.5;
+  color: rgba(224, 231, 226, 0.78);
+  border: 1px solid rgba(148, 162, 151, 0.18);
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0 10px;
+  border-radius: 12px;
 }
-.routine-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.icon-btn-soft:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(217,245,106,0.22);
+  color: var(--text);
+}
+.routine-volume-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(140, 153, 146, 0.15);
+}
+.muscle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(148, 162, 151, 0.16);
+  color: var(--text);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+.muscle-label { color: rgba(240, 245, 238, 0.8); }
+.muscle-value {
+  min-width: 22px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(116,227,163,0.12);
+  border: 1px solid rgba(116,227,163,0.25);
+  color: var(--success);
+  font-weight: 800;
+}
+.routine-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .meta-badge { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--muted); font-size: 0.72rem; }
 .meta-badge.hot { background: rgba(255,126,114,0.08); border-color: rgba(255,126,114,0.28); color: #ffb0a8; }
 .meta-badge.good { background: rgba(116,227,163,0.08); border-color: rgba(116,227,163,0.2); color: var(--success); }
+.routine-exercise-list {
+  display: grid;
+  gap: 0;
+  margin-top: 16px;
+  border-top: 1px solid rgba(151,165,143,0.14);
+  border-bottom: 1px solid rgba(151,165,143,0.08);
+}
+.routine-exercise-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 4px;
+  border-bottom: 1px solid rgba(151,165,143,0.08);
+}
+.routine-exercise-row:last-child { border-bottom: 0; }
+.routine-exercise-name {
+  flex: 1;
+  color: rgba(237, 242, 236, 0.92);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.routine-exercise-set {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(217,245,106,0.08);
+  border: 1px solid rgba(217,245,106,0.18);
+  color: rgba(232, 244, 186, 0.96);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+.routine-start-btn {
+  width: 100%;
+  margin-top: 18px;
+  min-height: 60px;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, rgb(130, 232, 121), rgb(102, 184, 126) 42%, rgb(210, 217, 110));
+  color: #0c1912;
+  box-shadow: 0 0 0 1px rgba(142, 255, 162, 0.35), 0 20px 34px rgba(72, 182, 88, 0.25), 0 0 26px rgba(116, 227, 163, 0.26);
+}
+.routine-start-btn:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 0 0 1px rgba(142, 255, 162, 0.35), 0 28px 44px rgba(72, 182, 88, 0.3), 0 0 30px rgba(116, 227, 163, 0.28);
+}
 .workout-shell { padding-bottom: 24px; }
 .workout-scoreboard { margin: 8px 0 20px; }
 .timer-display { width: min(100%, 600px); margin: 0 auto; padding: 16px 18px 14px; border-radius: 28px; background: linear-gradient(135deg, rgba(29, 38, 31, 0.96), rgba(10, 15, 12, 0.9)); border: 1px solid rgba(136, 226, 175, 0.18); box-shadow: 0 0 30px rgba(42, 214, 131, 0.12), inset 0 0 25px rgba(217,245,106,0.08); text-align: center; font-size: clamp(2.4rem, 7vw, 4.4rem); font-weight: 900; letter-spacing: 0.09em; color: var(--primary); text-shadow: 0 0 18px rgba(116, 227, 163, 0.52), 0 0 30px rgba(217, 245, 106, 0.2); animation: timerGlow 3.4s ease-in-out infinite; }

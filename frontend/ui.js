@@ -202,6 +202,17 @@ function createSetEntry(type = 'Trabalho', reps = '8-12', load = '', rest = 60) 
   };
 }
 
+function getRepRangeText(series = []) {
+  const workEntries = (series || []).filter((entry) => entry.type === 'Trabalho');
+  if (!workEntries.length) return '8-12';
+
+  const rangeText = workEntries.map((entry) => String(entry.reps ?? '').trim()).find(Boolean);
+  if (rangeText) return rangeText;
+
+  const parsed = parseRepTarget(workEntries[0]?.reps || '8-12');
+  return `${parsed.min}-${parsed.max}`;
+}
+
 function summarizeExerciseSeries(series = []) {
   const summary = {
     Aquecimento: 0,
@@ -243,6 +254,7 @@ function hydrateExerciseDraft(item) {
   const repsMin = Number(item.target_reps_min || 8);
   const repsMax = Number(item.target_reps_max || 12);
   const restSeconds = Number(item.rest_seconds || 90);
+  const rangeText = item.target_reps || (repsMin === repsMax ? String(repsMin) : `${repsMin}-${repsMax}`);
 
   for (let index = 0; index < warmupCount; index += 1) {
     legacySeries.push(createSetEntry('Aquecimento', 12, '', 30));
@@ -253,7 +265,7 @@ function hydrateExerciseDraft(item) {
   }
 
   for (let index = 0; index < workCount; index += 1) {
-    legacySeries.push(createSetEntry('Trabalho', Math.max(repsMin, repsMax === repsMin ? repsMin : repsMin + (index % 2)), '10', restSeconds));
+    legacySeries.push(createSetEntry('Trabalho', rangeText, '', restSeconds));
   }
 
   return {
@@ -684,6 +696,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
             warmup_sets: summary.warmup_sets,
             prep_sets: summary.prep_sets,
             target_sets: summary.target_sets,
+            target_reps: getRepRangeText(item.series),
             target_reps_min: summary.target_reps_min,
             target_reps_max: summary.target_reps_max,
             rest_seconds: summary.rest_seconds,
@@ -1014,6 +1027,68 @@ function renderDashboardScreen() {
   document.getElementById('dashboard-start-btn').addEventListener('click', () => startWorkoutFlow());
 }
 
+function normalizeMuscleKey(value = '') {
+  const normalized = String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const aliases = {
+    peito: 'peito',
+    peitoral: 'peito',
+    costas: 'costas',
+    costa: 'costas',
+    ombro: 'ombro',
+    ombros: 'ombro',
+    braco: 'braco',
+    braços: 'braco',
+    bracos: 'braco',
+    triceps: 'triceps',
+    tricep: 'triceps',
+    biceps: 'biceps',
+    peito: 'peito',
+    perna: 'perna',
+    pernas: 'perna',
+    panturrilha: 'panturrilha',
+    panturrilhas: 'panturrilha',
+    gluteo: 'gluteo',
+    gluteos: 'gluteo',
+    abdomen: 'abdomen',
+    abs: 'abdomen',
+    abdome: 'abdomen',
+    abdomen: 'abdomen',
+    lombo: 'lombar',
+    lombar: 'lombar',
+    trapézio: 'trapezio',
+    trapezio: 'trapezio',
+  };
+
+  return aliases[normalized] || normalized.replace(/s$/, '');
+}
+
+function formatMuscleLabel(value = '') {
+  const key = normalizeMuscleKey(value);
+  const labels = {
+    peito: 'Peito',
+    costas: 'Costas',
+    ombro: 'Ombro',
+    braco: 'Braço',
+    triceps: 'Tríceps',
+    biceps: 'Bíceps',
+    perna: 'Perna',
+    panturrilha: 'Panturrilha',
+    gluteo: 'Glúteo',
+    abdomen: 'Abdômen',
+    lombar: 'Lombar',
+    trapezio: 'Trapézio',
+  };
+
+  return labels[key] || String(value || 'Músculo').trim();
+}
+
 function getRoutineVolumeByMuscle(routine) {
   const totals = {};
   const items = Array.isArray(routine?.exercises) ? routine.exercises : [];
@@ -1026,10 +1101,14 @@ function getRoutineVolumeByMuscle(routine) {
       : Number(item.target_sets || 0);
 
     if (!workSets) return;
-    totals[muscleName] = (totals[muscleName] || 0) + Number(workSets);
+
+    const key = normalizeMuscleKey(muscleName);
+    totals[key] = (totals[key] || 0) + Number(workSets);
   });
 
-  return Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  return Object.entries(totals)
+    .map(([key, total]) => [formatMuscleLabel(key), total])
+    .sort((a, b) => b[1] - a[1]);
 }
 
 function renderTreinosScreen() {
@@ -1062,36 +1141,50 @@ function renderTreinosScreen() {
   } else {
     list.innerHTML = AppState.routines.map((routine) => {
       const volumeSummary = getRoutineVolumeByMuscle(routine);
-      const volumeText = volumeSummary.length
-        ? volumeSummary.map(([muscle, total]) => `${muscle}: ${total} séries`).join(' | ')
-        : 'Sem volume de trabalho';
 
       return `
         <div class="routine-card-feature">
-          <div class="card-header">
-            <h3>${routine.name}</h3>
-            <div class="btn-row">
-              <button class="icon-btn" data-action="start" data-id="${routine.id}">▶</button>
-              <button class="icon-btn" data-action="edit" data-id="${routine.id}" title="Editar ficha">✎</button>
-              <button class="icon-btn" data-action="delete" data-id="${routine.id}">✕</button>
+          <div class="card-header routine-card-header">
+            <div class="routine-title-wrap">
+              <h3>${routine.name}</h3>
+              <div class="routine-meta">
+                <span class="meta-badge good">${(routine.exercises || []).length} exercícios</span>
+                <span class="meta-badge">${Math.max(20, (routine.exercises || []).length * 18)} min</span>
+                <span class="meta-badge hot">Superior</span>
+              </div>
+            </div>
+            <div class="routine-card-actions">
+              <button class="icon-btn icon-btn-soft" data-action="edit" data-id="${routine.id}" title="Editar ficha">✎</button>
+              <button class="icon-btn icon-btn-soft" data-action="delete" data-id="${routine.id}" title="Excluir ficha">✕</button>
             </div>
           </div>
-          <div class="routine-meta">
-            <span class="meta-badge good">${(routine.exercises || []).length} exercícios</span>
-            <span class="meta-badge">${Math.max(20, (routine.exercises || []).length * 18)} min</span>
-            <span class="meta-badge hot">Superior</span>
-          </div>
+
           <div class="routine-volume-row">
-            <span>${volumeText}</span>
+            ${volumeSummary.length
+              ? volumeSummary.map(([muscle, total]) => `
+                <span class="muscle-pill">
+                  <span class="muscle-label">${muscle}</span>
+                  <span class="muscle-value">${total}</span>
+                </span>
+              `).join('')
+              : '<span class="muscle-pill"><span class="muscle-label">Sem volume</span><span class="muscle-value">0</span></span>'}
           </div>
-          <div class="list" style="margin-top:14px;">
-            ${(routine.exercises || []).map((item) => `
-              <div class="list-item">
-                <span>${item.exercise_name || item.exercise_id}</span>
-                <strong>${item.target_sets || 1}x${item.target_reps_min || 8}-${item.target_reps_max || 12}</strong>
-              </div>
-            `).join('')}
+
+          <div class="routine-exercise-list">
+            ${(routine.exercises || []).map((item) => {
+              const repsValue = item.target_reps || `${item.target_reps_min || 8}-${item.target_reps_max || 12}`;
+              return `
+                <div class="routine-exercise-row">
+                  <span class="routine-exercise-name">${item.exercise_name || item.exercise_id}</span>
+                  <span class="routine-exercise-set">${item.target_sets || 1}×${repsValue}</span>
+                </div>
+              `;
+            }).join('')}
           </div>
+
+          <button class="primary-btn routine-start-btn" data-action="start" data-id="${routine.id}">
+            ▶ INICIAR TREINO
+          </button>
         </div>
       `;
     }).join('');

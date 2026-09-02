@@ -58,6 +58,7 @@ class RoutineExerciseBase(BaseModel):
     warmup_sets: int = Field(default=0, ge=0, le=10)
     prep_sets: int = Field(default=0, ge=0, le=10)
     target_sets: int = Field(..., ge=1, le=20)
+    target_reps: Optional[str] = Field(default="8-12", min_length=1, max_length=30)
     target_reps_min: int = Field(..., ge=1, le=50)
     target_reps_max: int = Field(..., ge=1, le=100)
     rest_seconds: int = Field(..., ge=0, le=600)
