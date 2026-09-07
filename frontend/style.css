@@ -992,7 +992,8 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .series-table { display: grid; gap: 6px; }
 .series-table-head, .series-row-item { display: grid; grid-template-columns: 44px 1fr 0.95fr 0.95fr 54px; gap: 8px; align-items: center; }
 .series-table-head { padding: 0 8px 4px; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.series-row-item { padding: 10px; border-radius: 12px 12px 0 0; background: rgba(255,255,255,0.02); border: 1px solid rgba(145,157,148,0.16); color: var(--text); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.series-row-item { padding: 12px 10px; border-radius: 16px; background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018)); border: 1px solid rgba(145,157,148,0.16); color: var(--text); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease; }
+.series-row-item.completed { background: linear-gradient(145deg, rgba(116,227,163,0.13), rgba(116,227,163,0.035)); border-color: rgba(116,227,163,0.42); }
 .series-row-item.selected { border-color: rgba(116,227,163,0.5); box-shadow: 0 0 0 1px rgba(116,227,163,0.24), 0 0 18px rgba(116,227,163,0.16); animation: neonPulse 2.2s ease-in-out infinite; }
 .series-row-item.warm { border-left: 3px solid rgba(116,227,163,0.9); }
 .series-row-item.prep { border-left: 3px solid rgba(242,201,105,0.9); }
@@ -1002,17 +1003,21 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .series-kind.warm { background: rgba(116,227,163,0.12); color: var(--success); }
 .series-kind.prep { background: rgba(242,201,105,0.12); color: var(--warning); }
 .series-kind.work { background: rgba(255,126,114,0.12); color: #ffb3a7; }
-.workout-input-wrap { display: grid; gap: 4px; }
+.workout-input-wrap { display: grid; gap: 5px; min-width: 0; }
 .workout-input-wrap > span { color: var(--muted); font-size: 0.58rem; font-weight: 900; letter-spacing: 0.08em; }
-.set-input { width: 100%; min-width: 0; min-height: 42px; padding: 8px 7px; border: 1px solid rgba(217,245,106,0.2); border-radius: 9px; background: rgba(6,12,9,0.7); color: var(--text); font-size: 1rem; font-weight: 800; text-align: center; outline: none; }
+.set-input { width: 100%; min-width: 0; min-height: 48px; padding: 10px 8px; border: 1px solid rgba(217,245,106,0.2); border-radius: 12px; background: rgba(6,12,9,0.7); color: var(--text); font-size: 1.05rem; font-weight: 800; text-align: center; outline: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
 .set-input::placeholder { color: rgba(205,220,205,0.42); }
 .set-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(217,245,106,0.12); }
-.set-check-wrap { display: grid; justify-items: center; gap: 3px; color: var(--muted); font-size: 0.58rem; font-weight: 900; }
-.set-check-wrap .set-check-input { width: 22px; height: 22px; margin: 0; accent-color: var(--primary); }
-.previous-set-note { margin: -6px 0 2px 52px; padding: 5px 9px 7px; border-bottom: 1px solid rgba(145,157,148,0.12); color: var(--muted); font-size: 0.7rem; }
+.previous-set-badge { max-width: 100%; overflow: hidden; padding: 7px 8px; border: 1px solid rgba(156,174,165,0.2); border-radius: 9px; background: rgba(156,174,165,0.07); color: rgba(213,226,212,0.68); font-size: 0.62rem; font-weight: 750; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.previous-set-badge:hover, .previous-set-badge:focus-visible { border-color: rgba(217,245,106,0.5); background: rgba(217,245,106,0.1); color: var(--primary); outline: none; }
+.set-check-wrap { position: relative; display: grid; place-items: center; min-width: 46px; min-height: 52px; color: var(--muted); font-size: 0.58rem; font-weight: 900; }
+.set-check-wrap .set-check-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; opacity: 0; z-index: 2; }
+.set-check-button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgba(156,174,165,0.35); border-radius: 12px; color: transparent; background: rgba(255,255,255,0.03); font-size: 1.05rem; transition: all 0.2s ease; }
+.set-check-wrap:has(.set-check-input:checked) .set-check-button { border-color: rgba(116,227,163,0.75); color: #0d2117; background: #83e9a8; box-shadow: 0 0 18px rgba(116,227,163,0.35); transform: scale(1.06); }
 .workout-actions { display: grid; gap: 8px; margin-top: 12px; }
-.action-green { min-height: 48px; background: #b8dc78; color: #142016; box-shadow: 0 8px 20px rgba(137,190,92,0.14); }
-.action-cyan { min-height: 42px; background: rgba(132,207,184,0.1); border: 1px solid rgba(132,207,184,0.25); color: #b5e3d0; }
+.action-green { min-height: 54px; border: 1px solid rgba(207,255,154,0.46); border-radius: 16px; background: linear-gradient(135deg, #b9ed8b, #78d99d); color: #102217; box-shadow: 0 12px 26px rgba(95,194,109,0.2), inset 0 1px 0 rgba(255,255,255,0.36); font-weight: 900; }
+.action-green:hover { transform: translateY(-1px); box-shadow: 0 16px 32px rgba(95,194,109,0.28), inset 0 1px 0 rgba(255,255,255,0.36); }
+.action-cyan { min-height: 46px; border-radius: 14px; background: rgba(132,207,184,0.07); border: 1px solid rgba(132,207,184,0.25); color: #b5e3d0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
 .workout-finish-link { display: block; margin: 14px auto 0; padding: 8px 12px; border: 0; background: transparent; color: rgba(255,170,161,0.7); font-size: 0.75rem; font-weight: 800; }
 .workout-finish-link:hover { color: #ffaaa1; text-decoration: underline; }
 .rest-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 10px 13px; border: 1px solid rgba(105,211,255,0.2); border-radius: 12px; background: rgba(105,211,255,0.06); color: rgba(190,231,244,0.72); }
@@ -1099,8 +1104,9 @@ body.light .navbar { background: rgba(255, 255, 255, 0.92); }
   .series-table-head, .series-row-item { grid-template-columns: 28px 0.9fr 0.8fr 0.8fr 38px; gap: 5px; }
   .series-row-item { padding: 8px 6px; }
   .series-kind { padding: 5px 4px; font-size: 0.6rem; }
-  .previous-set-note { margin-left: 34px; font-size: 0.66rem; }
-  .set-input { min-height: 40px; font-size: 0.94rem; }
+  .set-input { min-height: 48px; font-size: 0.94rem; }
+  .previous-set-badge { font-size: 0.57rem; padding-inline: 6px; }
+  .set-check-wrap { min-width: 38px; }
   .btn-row > button { flex: 1 1 auto; }
   .progress-metrics .metric { padding: 12px 10px; }
   .progress-metrics .metric-value { font-size: 1.05rem; }

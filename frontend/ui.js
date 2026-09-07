@@ -1659,14 +1659,13 @@ function renderWorkoutScreen() {
             <span>Série</span><span>Tipo</span><span>Reps</span><span>Carga</span><span>Feita</span>
           </div>
           ${rowsWithHistory.map((row, index) => `
-            <div class="series-row-item ${index === 0 ? 'selected' : ''} ${row.type === 'T' ? 'work' : row.type === 'P' ? 'prep' : 'warm'} ${row.previous ? 'filled' : ''}" data-set-index="${index}">
+            <div class="series-row-item ${index === 0 ? 'selected' : ''} ${row.type === 'T' ? 'work' : row.type === 'P' ? 'prep' : 'warm'} ${row.is_completed ? 'completed' : ''}" data-set-index="${index}">
               <span class="series-number">${index + 1}</span>
               <span class="series-kind ${row.type === 'T' ? 'work' : row.type === 'P' ? 'prep' : 'warm'}">${row.apiType}</span>
-              <label class="workout-input-wrap"><span>REPS</span><input class="set-input" data-field="reps" data-index="${index}" inputmode="numeric" type="number" min="0" placeholder="${row.previous?.reps ?? '0'}" value="${row.reps}"></label>
+              <label class="workout-input-wrap"><span>REPS</span><input class="set-input" data-field="reps" data-index="${index}" inputmode="numeric" type="number" min="0" placeholder="${row.previous?.reps ?? '0'}" value="${row.reps}">${row.previous ? `<button type="button" class="previous-set-badge" data-fill-previous="${index}">Anterior · ${row.previous.reps ?? 0} reps / ${row.previous.weight_kg ?? 0} kg</button>` : ''}</label>
               <label class="workout-input-wrap"><span>KG</span><input class="set-input" data-field="weight_kg" data-index="${index}" inputmode="decimal" type="number" min="0" step="0.5" placeholder="${row.previous?.weight_kg ?? '0'}" value="${row.weight_kg}"></label>
-              <label class="set-check-wrap" title="Marcar série como feita"><input class="set-check-input" data-field="is_completed" data-index="${index}" type="checkbox" ${row.is_completed ? 'checked' : ''}><span>OK</span></label>
+              <label class="set-check-wrap" title="Marcar série como feita"><input class="set-check-input" data-field="is_completed" data-index="${index}" type="checkbox" ${row.is_completed ? 'checked' : ''}><span class="set-check-button">✓</span></label>
             </div>
-            <div class="previous-set-note">${row.previous ? `Anterior: ${row.previous.reps ?? 0} reps | ${row.previous.weight_kg ?? 0} kg` : 'Sem registro anterior'}</div>
           `).join('')}
         </div>
 
@@ -1696,7 +1695,28 @@ function renderWorkoutScreen() {
     });
     input.addEventListener('change', () => {
       const draft = currentDrafts[Number(input.dataset.index)];
-      if (draft) draft[input.dataset.field] = input.type === 'checkbox' ? input.checked : input.value;
+      if (draft) {
+        draft[input.dataset.field] = input.type === 'checkbox' ? input.checked : input.value;
+        if (input.type === 'checkbox') {
+          input.closest('.series-row-item')?.classList.toggle('completed', input.checked);
+        }
+      }
+    });
+  });
+
+  screen.querySelectorAll('[data-fill-previous]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const index = Number(button.dataset.fillPrevious);
+      const previous = rowsWithHistory[index]?.previous;
+      const draft = currentDrafts[index];
+      if (!previous || !draft) return;
+      draft.reps = previous.reps ?? '';
+      draft.weight_kg = previous.weight_kg ?? '';
+      const repsInput = screen.querySelector(`[data-field="reps"][data-index="${index}"]`);
+      const weightInput = screen.querySelector(`[data-field="weight_kg"][data-index="${index}"]`);
+      if (repsInput) repsInput.value = draft.reps;
+      if (weightInput) weightInput.value = draft.weight_kg;
+      showToast('Dados anteriores preenchidos.');
     });
   });
 
