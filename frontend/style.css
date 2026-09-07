@@ -789,6 +789,17 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .chart-label { font-size: 0.7rem; color: var(--muted); }
 
 .history-shell { display: grid; gap: 18px; }
+.analytics-filter { display: grid; gap: 14px; padding: 16px; }
+.analytics-filter-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.analytics-filter-header > div { display: grid; gap: 5px; }
+.analytics-filter-header strong { font-size: 0.95rem; color: var(--text); }
+.analytics-filter-caption { color: var(--muted); font-size: 0.72rem; }
+.analytics-pills { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: thin; }
+.analytics-pill { flex: 0 0 auto; min-height: 40px; padding: 0 13px; border: 1px solid rgba(145,157,148,0.2); border-radius: 999px; background: rgba(255,255,255,0.03); color: var(--muted); font-size: 0.78rem; font-weight: 800; white-space: nowrap; }
+.analytics-pill:hover, .analytics-pill.active { border-color: rgba(217,245,106,0.5); background: rgba(217,245,106,0.12); color: var(--primary); }
+.analytics-custom-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.analytics-custom-range label { display: grid; gap: 6px; color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.analytics-custom-range input { width: 100%; min-height: 42px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-soft); color: var(--text); }
 .history-calendar-card { padding-bottom: 14px; }
 .contribution-graph { display: grid; gap: 8px; margin-top: 16px; }
 .contribution-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
@@ -1116,6 +1127,8 @@ body.light .navbar { background: rgba(255, 255, 255, 0.92); }
   .progress-coach { align-items: flex-start; }
   .record-chip { min-width: 76px; }
   .progress-grid { grid-template-columns: 1fr; }
+  .analytics-filter-header { align-items: flex-start; flex-direction: column; }
+  .analytics-custom-range { grid-template-columns: 1fr; }
   .photo-grid { grid-template-columns: 1fr; }
   .modal-panel { padding: 18px 14px; border-radius: 18px; }
   .routine-modal-shell { max-height: calc(92vh - 26px); }

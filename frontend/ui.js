@@ -6,7 +6,12 @@ const AppState = {
   exercises: [],
   recentSessions: [],
   currentRoutine: null,
-  isAuthReady: false
+  isAuthReady: false,
+  analytics: {
+    preset: 'month',
+    customStart: '',
+    customEnd: ''
+  }
 };
 
 const Views = {
@@ -14,7 +19,7 @@ const Views = {
   dashboard: () => renderDashboardScreen(),
   treinos: () => renderTreinosScreen(),
   exercicios: () => renderExerciseManagementScreen(),
-  historico: () => renderHistoricoScreen(),
+  analises: () => renderAnalisesScreen(),
   biblioteca: () => renderBibliotecaScreen(),
   workout: () => renderWorkoutScreen(),
 };
@@ -1256,15 +1261,49 @@ function renderTreinosScreen() {
   document.getElementById('new-routine-btn').addEventListener('click', () => renderRoutineBuilderModal());
 }
 
-function renderHistoricoScreen() {
-  const screen = document.getElementById('screen-historico');
+function getAnalyticsRange() {
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  const { preset, customStart, customEnd } = AppState.analytics;
+  if (preset === 'custom' && customStart && customEnd) {
+    return { start: new Date(`${customStart}T00:00:00`), end: new Date(`${customEnd}T23:59:59`) };
+  }
+  let start;
+  if (preset === 'week') {
+    const day = today.getDay() || 7;
+    start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - day + 1);
+  } else if (preset === 'year') {
+    start = new Date(today.getFullYear(), 0, 1);
+  } else if (preset === 'last30') {
+    start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29);
+  } else {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+  return { start, end };
+}
+
+function formatAnalyticsDate(date) {
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+}
+
+async function fetchAnalyticsData(startDate, endDate) {
+  const sessions = await window.MeuTreinoAPI.getWorkouts();
+  AppState.recentSessions = Array.isArray(sessions) ? sessions : [];
+  return AppState.recentSessions.filter((session) => {
+    const sessionDate = new Date(session.start_time || session.created_at);
+    return sessionDate >= startDate && sessionDate <= endDate;
+  });
+}
+
+function renderAnalysesScreen() {
+  const screen = document.getElementById('screen-analises');
   if (!screen) return;
 
   (async () => {
     try {
-      const sessions = await window.MeuTreinoAPI.getWorkouts();
-      AppState.recentSessions = Array.isArray(sessions) ? sessions : [];
-      const completedSessions = AppState.recentSessions.filter((session) => session.status === 'completed');
+      const { start, end } = getAnalyticsRange();
+      const sessions = await fetchAnalyticsData(start, end);
+      const completedSessions = sessions.filter((session) => session.status === 'completed');
       const totalVolume = completedSessions.reduce((sum, session) => sum + Number(session.total_volume || 0), 0);
       const averageVolume = completedSessions.length ? totalVolume / completedSessions.length : 0;
       const chartSessions = completedSessions.slice(0, 7).reverse();
@@ -1274,10 +1313,21 @@ function renderHistoricoScreen() {
         <div class="app-shell history-shell">
           <header class="topbar">
             <div>
-              <div class="brand">Diário</div>
-              <small style="color:var(--muted);">Seus dados de treino</small>
+              <div class="brand">Análises</div>
+              <small style="color:var(--muted);">Sua evolução de treino</small>
             </div>
           </header>
+
+          <section class="analytics-filter screen-card">
+            <div class="analytics-filter-header">
+              <div><span class="eyebrow">Período aplicado</span><strong>${formatAnalyticsDate(start)} - ${formatAnalyticsDate(end)}</strong></div>
+              <span class="analytics-filter-caption">Dados reais</span>
+            </div>
+            <div class="analytics-pills" role="group" aria-label="Período das análises">
+              ${[['week', 'Semana Atual'], ['month', 'Mês Atual'], ['year', 'Ano Atual'], ['last30', 'Últimos 30 dias'], ['custom', 'Personalizado']].map(([value, label]) => `<button type="button" class="analytics-pill ${AppState.analytics.preset === value ? 'active' : ''}" data-analytics-preset="${value}">${label}</button>`).join('')}
+            </div>
+            ${AppState.analytics.preset === 'custom' ? `<div class="analytics-custom-range"><label>Data inicial<input id="analytics-start-date" type="date" value="${AppState.analytics.customStart}"></label><label>Data final<input id="analytics-end-date" type="date" value="${AppState.analytics.customEnd}"></label></div>` : ''}
+          </section>
 
           <section class="summary-grid">
             <div class="summary-card">
@@ -1322,7 +1372,7 @@ function renderHistoricoScreen() {
           </section>
 
           <section class="card history-list-card">
-            ${AppState.recentSessions.length ? AppState.recentSessions.map((session) => `
+            ${sessions.length ? sessions.map((session) => `
               <div class="routine-card history-item">
                 <div class="card-header">
                   <div><h3>${session.status === 'completed' ? 'Treino concluído' : 'Treino em andamento'}</h3><small style="color:var(--muted);">${new Date(session.start_time || session.created_at).toLocaleDateString('pt-BR')}</small></div>
@@ -1343,13 +1393,32 @@ function renderHistoricoScreen() {
         </div>
         ${renderNavBar()}
       `;
+      screen.querySelectorAll('[data-analytics-preset]').forEach((button) => {
+        button.addEventListener('click', () => {
+          AppState.analytics.preset = button.dataset.analyticsPreset;
+          if (AppState.analytics.preset === 'custom' && (!AppState.analytics.customStart || !AppState.analytics.customEnd)) {
+            const today = new Date().toISOString().slice(0, 10);
+            AppState.analytics.customStart = today;
+            AppState.analytics.customEnd = today;
+          }
+          renderAnalysesScreen();
+        });
+      });
+      screen.querySelector('#analytics-start-date')?.addEventListener('change', (event) => {
+        AppState.analytics.customStart = event.target.value;
+        renderAnalysesScreen();
+      });
+      screen.querySelector('#analytics-end-date')?.addEventListener('change', (event) => {
+        AppState.analytics.customEnd = event.target.value;
+        renderAnalysesScreen();
+      });
       screen.querySelectorAll('[data-delete-workout]').forEach((button) => {
         button.addEventListener('click', async () => {
           if (!window.confirm('Excluir este treino do histórico?')) return;
           try {
             await window.MeuTreinoAPI.deleteWorkout(button.dataset.deleteWorkout);
             AppState.recentSessions = AppState.recentSessions.filter((session) => session.id !== button.dataset.deleteWorkout);
-            renderHistoricoScreen();
+            renderAnalysesScreen();
             showToast('Treino excluído.');
           } catch (error) {
             showToast(error.message || 'Erro ao excluir treino.');
@@ -1361,7 +1430,7 @@ function renderHistoricoScreen() {
         <div class="app-shell">
           <header class="topbar">
             <div>
-              <div class="brand">Diário</div>
+              <div class="brand">Análises</div>
               <small style="color:var(--muted);">Seus dados aparecem aqui</small>
             </div>
           </header>
@@ -1787,8 +1856,8 @@ function renderWorkoutScreen() {
       WorkoutLogic.stopRestTimer();
       showToast('Treino finalizado');
       setView('dashboard');
-      if (typeof renderHistoricoScreen === 'function') {
-        renderHistoricoScreen();
+      if (typeof renderAnalysesScreen === 'function') {
+        renderAnalysesScreen();
       }
     } catch (error) {
       showToast(error.message || 'Erro ao finalizar treino.');
@@ -1813,9 +1882,9 @@ function renderNavBar() {
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 12h14"></path><path d="M8 7h8v10H8z"></path></svg>
           <span class="nav-label">Exercícios</span>
         </button>
-        <button class="nav-btn ${AppState.view === 'historico' ? 'active' : ''}" data-view="historico">
+        <button class="nav-btn ${AppState.view === 'analises' ? 'active' : ''}" data-view="analises">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h2l2.5 7 3.5-14 2.5 7H20"></path></svg>
-          <span class="nav-label">Diário</span>
+          <span class="nav-label">Análises</span>
         </button>
         <button class="nav-btn ${AppState.view === 'biblioteca' ? 'active' : ''}" data-view="biblioteca">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"></path><path d="M7 8.5c0-1.5 1-2.5 5-2.5s5 1 5 2.5-1 2.5-5 2.5-5 1-5 2.5 1 2.5 5 2.5 5-1 5-2.5"></path></svg>
@@ -1880,7 +1949,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     <div id="screen-dashboard" class="screen"></div>
     <div id="screen-treinos" class="screen"></div>
     <div id="screen-exercicios" class="screen"></div>
-    <div id="screen-historico" class="screen"></div>
+    <div id="screen-analises" class="screen"></div>
     <div id="screen-biblioteca" class="screen"></div>
     <div id="screen-workout" class="screen"></div>
   `;
