@@ -1287,7 +1287,10 @@ function formatAnalyticsDate(date) {
 }
 
 async function fetchAnalyticsData(startDate, endDate) {
-  const sessions = await window.MeuTreinoAPI.getWorkouts();
+  const sessions = await Promise.race([
+    window.MeuTreinoAPI.getWorkouts(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('A API demorou para responder.')), 12000))
+  ]);
   AppState.recentSessions = Array.isArray(sessions) ? sessions : [];
   return AppState.recentSessions.filter((session) => {
     const sessionDate = new Date(session.start_time || session.created_at);
@@ -1298,6 +1301,20 @@ async function fetchAnalyticsData(startDate, endDate) {
 function renderAnalysesScreen() {
   const screen = document.getElementById('screen-analises') || document.getElementById('screen-historico');
   if (!screen) return;
+
+  screen.innerHTML = `
+    <div class="app-shell history-shell">
+      <header class="topbar">
+        <div><div class="brand">Análises</div><small style="color:var(--muted);">Carregando seus dados de treino...</small></div>
+      </header>
+      <section class="screen-card analytics-loading-card" aria-live="polite">
+        <span class="analytics-loading-mark"></span>
+        <strong>Preparando suas análises</strong>
+        <small>Buscando sessões salvas na sua conta.</small>
+      </section>
+    </div>
+    ${renderNavBar()}
+  `;
 
   (async () => {
     try {

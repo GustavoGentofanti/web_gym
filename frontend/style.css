@@ -785,6 +785,10 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .chart-label { font-size: 0.7rem; color: var(--muted); }
 
 .history-shell { display: grid; gap: 18px; }
+.analytics-loading-card { min-height: 180px; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; color: var(--muted); }
+.analytics-loading-card strong { color: var(--text); }
+.analytics-loading-card small { font-size: 0.78rem; }
+.analytics-loading-mark { width: 26px; height: 26px; border: 3px solid rgba(217,245,106,0.18); border-top-color: var(--primary); border-radius: 50%; animation: analyticsSpin 0.85s linear infinite; }
 .analytics-filter { display: grid; gap: 14px; padding: 16px; }
 .analytics-filter-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .analytics-filter-header > div { display: grid; gap: 5px; }
@@ -1088,6 +1092,8 @@ body.light .navbar { background: rgba(255, 255, 255, 0.92); }
   0%, 100% { opacity: 0.55; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.15); }
 }
+
+@keyframes analyticsSpin { to { transform: rotate(360deg); } }
 
 @media (min-width: 720px) {
   #app { padding-top: 30px; }
