@@ -31,7 +31,7 @@ function getCurrentUser() {
 function setView(name) {
   AppState.view = name;
   document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
-  const target = document.getElementById(`screen-${name}`);
+  const target = document.getElementById(`screen-${name}`) || (name === 'analises' ? document.getElementById('screen-historico') : null);
   if (target) target.classList.add('active');
   document.querySelectorAll('.nav-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.view === name);
@@ -1296,7 +1296,7 @@ async function fetchAnalyticsData(startDate, endDate) {
 }
 
 function renderAnalysesScreen() {
-  const screen = document.getElementById('screen-analises');
+  const screen = document.getElementById('screen-analises') || document.getElementById('screen-historico');
   if (!screen) return;
 
   (async () => {
