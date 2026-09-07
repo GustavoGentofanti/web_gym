@@ -1662,8 +1662,8 @@ function renderWorkoutScreen() {
             <div class="series-row-item ${index === 0 ? 'selected' : ''} ${row.type === 'T' ? 'work' : row.type === 'P' ? 'prep' : 'warm'} ${row.is_completed ? 'completed' : ''}" data-set-index="${index}">
               <span class="series-number">${index + 1}</span>
               <span class="series-kind ${row.type === 'T' ? 'work' : row.type === 'P' ? 'prep' : 'warm'}">${row.apiType}</span>
-              <label class="workout-input-wrap"><span>REPS</span><input class="set-input" data-field="reps" data-index="${index}" inputmode="numeric" type="number" min="0" placeholder="${row.previous?.reps ?? '0'}" value="${row.reps}">${row.previous ? `<button type="button" class="previous-set-badge" data-fill-previous="${index}">Anterior · ${row.previous.reps ?? 0} reps / ${row.previous.weight_kg ?? 0} kg</button>` : ''}</label>
-              <label class="workout-input-wrap"><span>KG</span><input class="set-input" data-field="weight_kg" data-index="${index}" inputmode="decimal" type="number" min="0" step="0.5" placeholder="${row.previous?.weight_kg ?? '0'}" value="${row.weight_kg}"></label>
+              <div class="workout-input-wrap"><div class="input-label-row"><span>REPS</span>${row.previous ? `<button type="button" class="previous-value-link" data-fill-previous="${index}" data-fill-field="reps">Ant: ${row.previous.reps ?? 0}</button>` : ''}</div><input aria-label="Repetições da série ${index + 1}" class="set-input" data-field="reps" data-index="${index}" inputmode="numeric" type="number" min="0" placeholder="${row.previous?.reps ?? '0'}" value="${row.reps}"></div>
+              <div class="workout-input-wrap"><div class="input-label-row"><span>CARGA</span>${row.previous ? `<button type="button" class="previous-value-link" data-fill-previous="${index}" data-fill-field="weight_kg">Ant: ${row.previous.weight_kg ?? 0} kg</button>` : ''}</div><input aria-label="Carga da série ${index + 1}" class="set-input" data-field="weight_kg" data-index="${index}" inputmode="decimal" type="number" min="0" step="0.5" placeholder="${row.previous?.weight_kg ?? '0'}" value="${row.weight_kg}"></div>
               <label class="set-check-wrap" title="Marcar série como feita"><input class="set-check-input" data-field="is_completed" data-index="${index}" type="checkbox" ${row.is_completed ? 'checked' : ''}><span class="set-check-button">✓</span></label>
             </div>
           `).join('')}
@@ -1710,13 +1710,11 @@ function renderWorkoutScreen() {
       const previous = rowsWithHistory[index]?.previous;
       const draft = currentDrafts[index];
       if (!previous || !draft) return;
-      draft.reps = previous.reps ?? '';
-      draft.weight_kg = previous.weight_kg ?? '';
-      const repsInput = screen.querySelector(`[data-field="reps"][data-index="${index}"]`);
-      const weightInput = screen.querySelector(`[data-field="weight_kg"][data-index="${index}"]`);
-      if (repsInput) repsInput.value = draft.reps;
-      if (weightInput) weightInput.value = draft.weight_kg;
-      showToast('Dados anteriores preenchidos.');
+      const field = button.dataset.fillField;
+      draft[field] = previous[field] ?? '';
+      const input = screen.querySelector(`[data-field="${field}"][data-index="${index}"]`);
+      if (input) input.value = draft[field];
+      showToast(`${field === 'reps' ? 'Repetições' : 'Carga'} anterior aplicada.`);
     });
   });
 
