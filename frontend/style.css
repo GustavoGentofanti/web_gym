@@ -976,7 +976,7 @@ body.light .topbar { background: rgba(244, 245, 236, 0.84); }
 .workout-hero-copy { position: relative; z-index: 2; width: min(100%, 700px); max-width: 78%; }
 .workout-hero h1 { max-width: 700px; margin: 10px 0 12px; color: #f1f8e7; font-size: clamp(2rem, 4vw, 3.7rem); line-height: 1.12; font-weight: 800; letter-spacing: -0.045em; overflow-wrap: anywhere; text-wrap: balance; }
 .workout-hero p { max-width: 440px; margin: 0; border: 0; color: rgba(230,242,228,0.62); font-size: 0.92rem; line-height: 1.5; text-decoration: none; }
-.workout-hero-mark { position: absolute; top: 4px; right: -20px; color: rgba(116,227,163,0.1); font-size: clamp(5rem, 15vw, 10rem); font-weight: 950; line-height: 0.9; letter-spacing: -0.12em; pointer-events: none; }
+.workout-hero-mark { position: absolute; top: 28px; right: 28px; z-index: 3; display: grid; place-items: center; width: 48px; height: 34px; border: 1px solid rgba(217,245,106,0.24); border-radius: 10px; background: rgba(217,245,106,0.08); color: rgba(217,245,106,0.82); font-size: 0.9rem; font-weight: 900; line-height: 1; letter-spacing: 0.08em; pointer-events: none; }
 .workout-progress-track { position: absolute; right: 28px; bottom: 26px; left: 28px; z-index: 2; height: 4px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,0.1); }
 .workout-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7ce4a5, #d9f56a); box-shadow: 0 0 14px rgba(217,245,106,0.72); }
 .workout-panel { padding: 14px 14px 12px; }
@@ -1098,7 +1098,7 @@ body.light .navbar { background: rgba(255, 255, 255, 0.92); }
   .workout-hero { min-height: 250px; padding: 24px 20px 62px; }
   .workout-hero-copy { max-width: 100%; }
   .workout-hero h1 { font-size: clamp(2rem, 10vw, 2.8rem); max-width: 82%; }
-  .workout-hero-mark { top: 18px; right: -8px; font-size: 4rem; }
+  .workout-hero-mark { top: 20px; right: 20px; width: 44px; height: 32px; font-size: 0.78rem; }
   .workout-progress-track { right: 20px; left: 20px; }
   .workout-target-strip { grid-template-columns: 1fr 1fr; }
   .workout-target-strip div:last-child { grid-column: 1 / -1; }
