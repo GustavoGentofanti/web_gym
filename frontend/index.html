@@ -7,12 +7,12 @@
     <title>GLE</title>
     <link rel="icon" type="image/png" href="icons/icon-192.png" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=20260907" />
   </head>
   <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+      navigator.serviceWorker.register('./sw.js?v=5', { updateViaCache: 'none' });
     });
   }
 </script>
@@ -21,11 +21,11 @@
     <div id="toast-container"></div>
     <div id="modal-root"></div>
 
-    <script src="config.js"></script>
-    <script src="db.js"></script>
-    <script src="api.js"></script>
-    <script src="sync.js"></script>
-    <script src="workout.js"></script>
-    <script src="ui.js"></script>
+    <script src="config.js?v=20260907"></script>
+    <script src="db.js?v=20260907"></script>
+    <script src="api.js?v=20260907"></script>
+    <script src="sync.js?v=20260907"></script>
+    <script src="workout.js?v=20260907"></script>
+    <script src="ui.js?v=20260907"></script>
   </body>
 </html>
