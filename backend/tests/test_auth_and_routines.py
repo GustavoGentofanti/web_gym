@@ -88,6 +88,58 @@ def test_create_routine_for_authenticated_user(client):
     assert response.json()["exercises"][0]["prep_sets"] == 0
 
 
+def test_update_routine_for_authenticated_user(client):
+    register = client.post(
+        "/api/auth/register",
+        json={"name": "Editor", "email": "editor@email.com", "password": "123456"},
+    )
+    headers = {"Authorization": f"Bearer {register.json()['access_token']}"}
+
+    exercise = client.post(
+        "/api/exercises",
+        json={"name": "Agachamento", "muscle_group": "Pernas", "equipment": "Barra", "is_custom": True},
+        headers=headers,
+    )
+    exercise_id = exercise.json()["id"]
+    created = client.post(
+        "/api/routines",
+        json={"name": "Treino original", "exercises": [{
+            "exercise_id": exercise_id,
+            "target_sets": 3,
+            "target_reps": "8-10",
+            "target_reps_min": 8,
+            "target_reps_max": 10,
+            "rest_seconds": 120,
+            "order_index": 0,
+        }]},
+        headers=headers,
+    )
+    routine_id = created.json()["id"]
+
+    updated = client.put(
+        f"/api/routines/{routine_id}",
+        json={"name": "Treino atualizado", "exercises": [{
+            "exercise_id": exercise_id,
+            "warmup_sets": 1,
+            "target_sets": 4,
+            "target_reps": "6-8",
+            "target_reps_min": 6,
+            "target_reps_max": 8,
+            "rest_seconds": 90,
+            "order_index": 0,
+        }]},
+        headers=headers,
+    )
+    assert updated.status_code == status.HTTP_200_OK
+    assert updated.json()["name"] == "Treino atualizado"
+    assert updated.json()["exercises"][0]["target_sets"] == 4
+    assert updated.json()["exercises"][0]["target_reps"] == "6-8"
+
+    fetched = client.get(f"/api/routines/{routine_id}", headers=headers)
+    assert fetched.json()["name"] == "Treino atualizado"
+    assert fetched.json()["exercises"][0]["warmup_sets"] == 1
+
+
 def test_routine_rejects_exercise_from_another_user(client):
     owner = client.post(
         "/api/auth/register",

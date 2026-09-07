@@ -755,7 +755,7 @@ function renderRoutineBuilderModal(routineToEdit = null) {
       setView('treinos');
       showToast(routineToEdit ? 'Ficha atualizada com sucesso.' : 'Ficha criada com sucesso.');
     } catch (error) {
-      showToast(error.message || 'Erro ao criar ficha.');
+      showToast(error.message || (routineToEdit ? 'Erro ao atualizar ficha.' : 'Erro ao criar ficha.'));
     }
   });
 }
@@ -814,13 +814,23 @@ function renderLoginScreen() {
   document.getElementById('login-submit').addEventListener('click', async () => {
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
+    if (!email || !password) {
+      showToast('Informe seu e-mail e sua senha.');
+      return;
+    }
+
     try {
-      const result = await window.MeuTreinoAPI.login({ email, password });
+      await window.MeuTreinoAPI.login({ email, password });
       AppState.currentUser = await window.MeuTreinoAPI.me();
       await loadUserData();
       setView('dashboard');
+      showToast('Login realizado com sucesso.');
     } catch (error) {
-      showToast(error.message || 'Erro ao fazer login');
+      if (error.status === 401) {
+        showToast('E-mail ou senha incorretos.');
+      } else {
+        showToast(error.message || 'Não foi possível fazer login.');
+      }
     }
   });
 

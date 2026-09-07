@@ -145,11 +145,7 @@ class ApiClient {
   }
 
   async updateRoutine(routineId, payload) {
-    return this.request(`/api/routines/${routineId}`, {
-      method: 'PUT',
-      headers: this.authHeaders(),
-      body: JSON.stringify(payload)
-    });
+    return this.mutation(`/api/routines/${routineId}`, 'PUT', { ...payload, id: routineId }, 'routine', 'update');
   }
 
   async deleteRoutine(routineId) {
