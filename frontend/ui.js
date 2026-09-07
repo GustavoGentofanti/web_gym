@@ -1666,21 +1666,37 @@ function renderWorkoutScreen() {
   screen.innerHTML = `
     <div class="app-shell workout-shell">
       <header class="topbar workout-topbar">
-        <div class="brand">${routine.name}</div>
-        <div class="status-pill online">● vivo</div>
+        <div>
+          <span class="workout-kicker">Sessão em andamento</span>
+          <div class="brand">${routine.name}</div>
+        </div>
+        <div class="workout-live-mark"><span></span> FOCO</div>
       </header>
 
-      <div class="workout-scoreboard">
-        <div class="timer-display" id="workout-timer">00:32:56</div>
+      <div class="workout-hero">
+        <div class="workout-hero-glow"></div>
+        <div class="workout-hero-copy">
+          <span class="workout-kicker">Exercício ${WorkoutLogic.state.currentExerciseIndex + 1} de ${routine.exercises.length}</span>
+          <h1>${currentExercise?.exercise_name || 'Exercício'}</h1>
+          <p>Execute com controle. Registre sua série quando estiver pronto.</p>
+        </div>
+        <div class="workout-hero-mark">${String(WorkoutLogic.state.currentExerciseIndex + 1).padStart(2, '0')}</div>
+        <div class="workout-progress-track"><span style="width:${Math.round(((WorkoutLogic.state.currentExerciseIndex + 1) / routine.exercises.length) * 100)}%"></span></div>
       </div>
 
       <div class="screen-card workout-panel">
         <div class="series-panel-header">
           <div>
-            <span class="eyebrow">Gerenciar Séries</span>
-            <h3>${currentExercise?.exercise_name || 'Exercício'}</h3>
+            <span class="eyebrow">Mapa de execução</span>
+            <h3>Suas séries</h3>
           </div>
-          <span class="series-badge badge-work">${rowsWithHistory.length} séries</span>
+          <span class="series-badge badge-work">${currentExercise?.target_sets || rowsWithHistory.length} séries de trabalho</span>
+        </div>
+
+        <div class="workout-target-strip">
+          <div><span>Meta de reps</span><strong>${currentExercise?.target_reps || `${currentExercise?.target_reps_min || 8}-${currentExercise?.target_reps_max || 12}`}</strong></div>
+          <div><span>Descanso</span><strong>${currentExercise?.rest_seconds || 90}s</strong></div>
+          <div><span>Status</span><strong>Pronto</strong></div>
         </div>
 
         <div class="series-table">
@@ -1707,6 +1723,7 @@ function renderWorkoutScreen() {
           <button class="secondary-btn action-cyan" id="next-exercise-btn">Adicionar Série Extra</button>
           <button class="danger-btn action-red" id="finish-workout-btn">Terminar Treino</button>
         </div>
+        <div class="rest-status" id="rest-status" aria-live="polite"><span>DESCANSO</span><strong id="rest-timer">--:--</strong></div>
       </div>
     </div>
   `;
@@ -1781,7 +1798,6 @@ function renderWorkoutScreen() {
     }
   });
 
-  WorkoutLogic.startTimer();
 }
 
 function renderNavBar() {
@@ -1858,7 +1874,6 @@ async function startWorkoutFlow(routineId = null) {
 
     WorkoutLogic.state.currentSession = session;
     setView('workout');
-    WorkoutLogic.startTimer();
   } catch (error) {
     showToast(error.message || 'Erro ao iniciar treino.');
   }

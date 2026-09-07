@@ -133,7 +133,10 @@ const WorkoutLogic = {
   },
 
   getCurrentSessionDuration() {
-    return Math.max(1, Math.floor((this.state.timerSeconds || 0) / 60));
+    const startedAt = this.state.currentSession?.start_time
+      ? new Date(this.state.currentSession.start_time).getTime()
+      : Date.now();
+    return Math.max(1, Math.floor((Date.now() - startedAt) / 60000));
   },
 
   showToast(message) {
