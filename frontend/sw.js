@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meutreino-v5';
+const CACHE_NAME = 'meutreino-v6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

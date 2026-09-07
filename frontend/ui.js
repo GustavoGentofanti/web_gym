@@ -47,7 +47,7 @@ async function initApp() {
     applyTheme(savedTheme);
   }
 
-  const token = localStorage.getItem('meutreino_token');
+  const token = window.MeuTreinoAPI.getToken();
   if (token) {
     try {
       const user = await window.MeuTreinoAPI.me();
@@ -56,7 +56,7 @@ async function initApp() {
       await loadUserData();
       setView('dashboard');
     } catch (error) {
-      localStorage.removeItem('meutreino_token');
+      window.MeuTreinoAPI.setToken(null);
       AppState.isAuthReady = true;
       setView('login');
     }
@@ -78,6 +78,12 @@ function applyTheme(mode) {
 }
 
 async function loadUserData() {
+  if (!AppState.currentUser || !window.MeuTreinoAPI.getToken()) {
+    AppState.routines = [];
+    AppState.exercises = [];
+    AppState.recentSessions = [];
+    return;
+  }
   try {
     const [localRoutines, localExercises] = await Promise.all([
       window.MeuTreinoDB.getUserData(AppState.currentUser.id, 'routines').catch(() => []),
@@ -1266,7 +1272,11 @@ function getAnalyticsRange() {
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
   const { preset, customStart, customEnd } = AppState.analytics;
   if (preset === 'custom' && customStart && customEnd) {
-    return { start: new Date(`${customStart}T00:00:00`), end: new Date(`${customEnd}T23:59:59`) };
+    const start = new Date(`${customStart}T00:00:00`);
+    const end = new Date(`${customEnd}T23:59:59`);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && start <= end) {
+      return { start, end };
+    }
   }
   let start;
   if (preset === 'week') {
@@ -1283,10 +1293,12 @@ function getAnalyticsRange() {
 }
 
 function formatAnalyticsDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '--';
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
 }
 
 async function fetchAnalyticsData(startDate, endDate) {
+  if (!window.MeuTreinoAPI.getToken()) throw new Error('Sessão expirada. Entre novamente para carregar as análises.');
   const sessions = await Promise.race([
     window.MeuTreinoAPI.getWorkouts(),
     new Promise((_, reject) => setTimeout(() => reject(new Error('A API demorou para responder.')), 12000))
@@ -1294,7 +1306,7 @@ async function fetchAnalyticsData(startDate, endDate) {
   AppState.recentSessions = Array.isArray(sessions) ? sessions : [];
   return AppState.recentSessions.filter((session) => {
     const sessionDate = new Date(session.start_time || session.created_at);
-    return sessionDate >= startDate && sessionDate <= endDate;
+    return !Number.isNaN(sessionDate.getTime()) && sessionDate >= startDate && sessionDate <= endDate;
   });
 }
 
@@ -1444,26 +1456,22 @@ function renderAnalysesScreen() {
       });
     } catch (error) {
       screen.innerHTML = `
-        <div class="app-shell">
+        <div class="app-shell history-shell">
           <header class="topbar">
             <div>
               <div class="brand">Análises</div>
-              <small style="color:var(--muted);">Seus dados aparecem aqui</small>
+              <small style="color:var(--muted);">Não foi possível carregar os dados</small>
             </div>
           </header>
-          <div class="metric-row progress-metrics">
-            <div class="metric"><div class="metric-label">Treinos</div><div class="metric-value">0</div></div>
-            <div class="metric"><div class="metric-label">Volume</div><div class="metric-value">0 kg</div></div>
-            <div class="metric"><div class="metric-label">Média</div><div class="metric-value">0 kg</div></div>
-            <div class="metric"><div class="metric-label">Status</div><div class="metric-value">--</div></div>
-          </div>
-          <div class="card progress-chart-card">
-            <div class="card-header"><div><h3>Volume por treino</h3><small style="color:var(--muted);">Ainda sem dados sincronizados</small></div><span class="progress-accent">KG</span></div>
-            <div class="empty-state compact-empty"><strong>↗</strong>Complete seu primeiro treino para acompanhar sua evolução.</div>
+          <div class="screen-card analytics-error-card">
+            <strong>Não conseguimos consultar suas sessões.</strong>
+            <p>${error.message || 'Verifique sua conexão e tente novamente.'}</p>
+            <button class="secondary-btn" id="retry-analytics-btn">Tentar novamente</button>
           </div>
         </div>
         ${renderNavBar()}
       `;
+      screen.querySelector('#retry-analytics-btn')?.addEventListener('click', () => renderAnalysesScreen());
     }
   })();
 }

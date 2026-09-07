@@ -3,18 +3,15 @@ const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8000';
 class ApiClient {
   constructor(baseUrl = API_BASE_URL) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.token = null;
   }
 
   getToken() {
-    return localStorage.getItem('meutreino_token');
+    return this.token;
   }
 
   setToken(token) {
-    if (token) {
-      localStorage.setItem('meutreino_token', token);
-    } else {
-      localStorage.removeItem('meutreino_token');
-    }
+    this.token = token || null;
   }
 
   async request(path, options = {}) {
