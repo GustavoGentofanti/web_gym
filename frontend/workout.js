@@ -11,7 +11,8 @@ const WorkoutLogic = {
     restInterval: null,
     wakeLock: null,
     lastExerciseHistory: {},
-    previousLogs: []
+    previousLogs: [],
+    currentSetDrafts: {}
   },
 
   getCurrentExercise() {
@@ -32,6 +33,22 @@ const WorkoutLogic = {
 
   getPreviousLog(exerciseId, apiType, ordinal) {
     return (this.state.previousLogs || []).filter((log) => log.exercise_id === exerciseId && log.set_type === apiType)[ordinal] || null;
+  },
+
+  getCurrentSetDrafts(exercise) {
+    if (!exercise) return [];
+    const rows = this.getSetRows(exercise);
+    const key = exercise.exercise_id;
+    if (!this.state.currentSetDrafts[key] || this.state.currentSetDrafts[key].length !== rows.length) {
+      this.state.currentSetDrafts[key] = rows.map((row) => ({
+        ...row,
+        weight_kg: '',
+        reps: '',
+        rir_rpe: '',
+        is_completed: false
+      }));
+    }
+    return this.state.currentSetDrafts[key];
   },
 
   getExerciseProgress(exercise, logs = this.state.previousLogs) {

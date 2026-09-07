@@ -1269,61 +1269,15 @@ function renderHistoricoScreen() {
       const averageVolume = completedSessions.length ? totalVolume / completedSessions.length : 0;
       const chartSessions = completedSessions.slice(0, 7).reverse();
       const chartMax = Math.max(...chartSessions.map((session) => Number(session.total_volume || 0)), 1);
-      const contributionMatrix = Array.from({ length: 12 }, (_, weekIndex) => {
-        return Array.from({ length: 7 }, (_, dayIndex) => {
-          const date = new Date();
-          date.setHours(0, 0, 0, 0);
-          date.setDate(date.getDate() - ((11 - weekIndex) * 7 + (6 - dayIndex)));
-
-          const volume = completedSessions.reduce((sum, session) => {
-            const sessionDate = new Date(session.start_time || session.created_at);
-            const sameDay = sessionDate.toDateString() === date.toDateString();
-            return sameDay ? sum + Number(session.total_volume || 0) : sum;
-          }, 0);
-
-          return {
-            date,
-            volume,
-            level: volume <= 0 ? 0 : volume >= chartMax * 0.9 ? 4 : volume >= chartMax * 0.7 ? 3 : volume >= chartMax * 0.45 ? 2 : 1,
-          };
-        });
-      });
 
       screen.innerHTML = `
         <div class="app-shell history-shell">
           <header class="topbar">
             <div>
               <div class="brand">Diário</div>
-              <small style="color:var(--muted);">Calendário e registros</small>
+              <small style="color:var(--muted);">Seus dados de treino</small>
             </div>
           </header>
-
-          <section class="screen-card history-calendar-card">
-            <div class="mini-topline">
-              <span>Consistência</span>
-              <button class="chip-btn">Últimos 12 semanas</button>
-            </div>
-            <div class="contribution-graph">
-              ${contributionMatrix.map((week) => `
-                <div class="contribution-row">
-                  ${week.map((cell) => `
-                    <div class="contribution-cell level-${cell.level}" title="${cell.date.toLocaleDateString('pt-BR')} · ${cell.volume} kg"></div>
-                  `).join('')}
-                </div>
-              `).join('')}
-            </div>
-            <div class="contribution-legend">
-              <span>Menos</span>
-              <div class="legend-scale">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-              <span>Mais</span>
-            </div>
-          </section>
 
           <section class="summary-grid">
             <div class="summary-card">
@@ -1656,11 +1610,12 @@ function renderWorkoutScreen() {
   if (!screen) return;
   const currentExercise = routine.exercises[WorkoutLogic.state.currentExerciseIndex];
   const setRowsList = WorkoutLogic.getSetRows(currentExercise);
+  const currentDrafts = WorkoutLogic.getCurrentSetDrafts(currentExercise);
   const previousOrdinals = { Aquecimento: 0, Preparação: 0, Trabalho: 0 };
-  const rowsWithHistory = setRowsList.map((row) => {
+  const rowsWithHistory = setRowsList.map((row, index) => {
     const ordinal = previousOrdinals[row.apiType];
     previousOrdinals[row.apiType] += 1;
-    return { ...row, previous: WorkoutLogic.getPreviousLog(currentExercise?.exercise_id, row.apiType, ordinal) };
+    return { ...row, ...currentDrafts[index], previous: WorkoutLogic.getPreviousLog(currentExercise?.exercise_id, row.apiType, ordinal) };
   });
 
   screen.innerHTML = `
@@ -1701,30 +1656,27 @@ function renderWorkoutScreen() {
 
         <div class="series-table">
           <div class="series-table-head">
-            <span>Série</span>
-            <span>Tipo</span>
-            <span>Reps</span>
-            <span>Carga</span>
-            <span>Desc.</span>
+            <span>Série</span><span>Tipo</span><span>Reps</span><span>Carga</span><span>Feita</span>
           </div>
           ${rowsWithHistory.map((row, index) => `
-            <div class="series-row-item ${index === 0 ? 'selected' : ''} ${row.type === 'Trabalho' ? 'work' : row.type === 'Preparação' ? 'prep' : 'warm'} ${row.previous ? 'filled' : ''}" data-set-type="${row.apiType}" data-set-weight="${row.previous?.weight_kg ?? row.load ?? ''}" data-set-reps="${row.previous?.reps ?? row.reps ?? ''}" data-set-rir="${row.previous?.rir_rpe ?? ''}">
+            <div class="series-row-item ${index === 0 ? 'selected' : ''} ${row.type === 'T' ? 'work' : row.type === 'P' ? 'prep' : 'warm'} ${row.previous ? 'filled' : ''}" data-set-index="${index}">
               <span class="series-number">${index + 1}</span>
-              <span class="series-kind ${row.type === 'Trabalho' ? 'work' : row.type === 'Preparação' ? 'prep' : 'warm'}">${row.type}</span>
-              <span>${row.previous?.reps ?? row.reps ?? 0}</span>
-              <span>${row.previous?.weight_kg ?? row.load ?? 0} kg</span>
-              <span>${row.rest ?? 60}s</span>
+              <span class="series-kind ${row.type === 'T' ? 'work' : row.type === 'P' ? 'prep' : 'warm'}">${row.apiType}</span>
+              <label class="workout-input-wrap"><span>REPS</span><input class="set-input" data-field="reps" data-index="${index}" inputmode="numeric" type="number" min="0" placeholder="${row.previous?.reps ?? '0'}" value="${row.reps}"></label>
+              <label class="workout-input-wrap"><span>KG</span><input class="set-input" data-field="weight_kg" data-index="${index}" inputmode="decimal" type="number" min="0" step="0.5" placeholder="${row.previous?.weight_kg ?? '0'}" value="${row.weight_kg}"></label>
+              <label class="set-check-wrap" title="Marcar série como feita"><input class="set-check-input" data-field="is_completed" data-index="${index}" type="checkbox" ${row.is_completed ? 'checked' : ''}><span>OK</span></label>
             </div>
+            <div class="previous-set-note">${row.previous ? `Anterior: ${row.previous.reps ?? 0} reps | ${row.previous.weight_kg ?? 0} kg` : 'Sem registro anterior'}</div>
           `).join('')}
         </div>
 
         <div class="workout-actions">
-          <button class="primary-btn action-green" id="save-set-btn">Registrar Série</button>
-          <button class="secondary-btn action-cyan" id="next-exercise-btn">Adicionar Série Extra</button>
-          <button class="danger-btn action-red" id="finish-workout-btn">Terminar Treino</button>
+          <button class="primary-btn action-green" id="next-exercise-btn">Salvar e próximo exercício</button>
+          <button class="secondary-btn action-cyan" id="save-set-btn">Salvar séries</button>
         </div>
         <div class="rest-status" id="rest-status" aria-live="polite"><span>DESCANSO</span><strong id="rest-timer">--:--</strong></div>
       </div>
+      <button class="workout-finish-link" id="finish-workout-btn" type="button">Encerrar treino</button>
     </div>
   `;
 
@@ -1736,37 +1688,64 @@ function renderWorkoutScreen() {
     });
   });
 
-  document.getElementById('save-set-btn').addEventListener('click', async () => {
+  screen.querySelectorAll('.set-input, .set-check-input').forEach((input) => {
+    input.addEventListener('input', () => {
+      const draft = currentDrafts[Number(input.dataset.index)];
+      if (!draft) return;
+      draft[input.dataset.field] = input.type === 'checkbox' ? input.checked : input.value;
+    });
+    input.addEventListener('change', () => {
+      const draft = currentDrafts[Number(input.dataset.index)];
+      if (draft) draft[input.dataset.field] = input.type === 'checkbox' ? input.checked : input.value;
+    });
+  });
+
+  const handleSaveAndNext = async (advance = false) => {
     const currentExercise = routine.exercises[WorkoutLogic.state.currentExerciseIndex];
     if (!currentExercise || !WorkoutLogic.state.currentSession) {
       showToast('Sessão de treino não iniciada.');
       return;
     }
 
-    const payload = {
-      session_id: WorkoutLogic.state.currentSession.id,
-      exercise_id: currentExercise.exercise_id,
-      set_type: 'Trabalho',
-      weight_kg: 10,
-      reps: 8,
-      rir_rpe: '2',
-      is_completed: true,
-      order_index: 0,
-    };
+    const completedDrafts = currentDrafts.filter((draft) => draft.is_completed);
+    if (!completedDrafts.length) {
+      showToast('Marque ao menos uma série como feita.');
+      return;
+    }
 
     try {
-      const savedLog = await window.MeuTreinoAPI.createWorkoutLog(WorkoutLogic.state.currentSession.id, payload);
-      WorkoutLogic.state.workoutLogs.push(savedLog);
-      showToast('Série registrada.');
+      for (const draft of completedDrafts) {
+        const savedLog = await window.MeuTreinoAPI.createWorkoutLog(WorkoutLogic.state.currentSession.id, {
+          session_id: WorkoutLogic.state.currentSession.id,
+          exercise_id: currentExercise.exercise_id,
+          set_type: draft.apiType,
+          weight_kg: Number(draft.weight_kg) || 0,
+          reps: Number(draft.reps) || 0,
+          rir_rpe: draft.rir_rpe || null,
+          is_completed: true,
+          order_index: draft.index,
+        });
+        WorkoutLogic.state.workoutLogs.push(savedLog);
+        draft.is_completed = false;
+      }
+      showToast(advance ? 'Séries salvas.' : 'Séries registradas.');
       WorkoutLogic.startRestTimer(currentExercise.rest_seconds || 90);
+      if (advance) {
+        if (WorkoutLogic.state.currentExerciseIndex < routine.exercises.length - 1) {
+          WorkoutLogic.state.currentExerciseIndex += 1;
+          renderWorkoutScreen();
+        } else {
+          showToast('Último exercício concluído.');
+        }
+      }
     } catch (error) {
       showToast(error.message || 'Erro ao salvar série.');
     }
-  });
+  };
 
-  document.getElementById('next-exercise-btn').addEventListener('click', () => {
-    showToast('Série extra adicionada.');
-  });
+  document.getElementById('save-set-btn').addEventListener('click', () => handleSaveAndNext(false));
+
+  document.getElementById('next-exercise-btn').addEventListener('click', () => handleSaveAndNext(true));
 
   document.getElementById('finish-workout-btn').addEventListener('click', async () => {
     if (!WorkoutLogic.state.currentSession) {
@@ -1824,10 +1803,6 @@ function renderNavBar() {
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"></path><path d="M7 8.5c0-1.5 1-2.5 5-2.5s5 1 5 2.5-1 2.5-5 2.5-5 1-5 2.5 1 2.5 5 2.5 5-1 5-2.5"></path></svg>
           <span class="nav-label">Progresso</span>
         </button>
-        <button class="nav-btn ${AppState.view === 'workout' ? 'active' : ''}" data-view="workout">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h3l2-5 3 10 2-5h6"></path></svg>
-          <span class="nav-label">Treino</span>
-        </button>
       </div>
     </nav>
   `;
@@ -1855,6 +1830,7 @@ async function startWorkoutFlow(routineId = null) {
   WorkoutLogic.state.currentExerciseIndex = 0;
   WorkoutLogic.state.workoutLogs = [];
   WorkoutLogic.state.previousLogs = [];
+  WorkoutLogic.state.currentSetDrafts = {};
   WorkoutLogic.stopTimer();
   WorkoutLogic.stopRestTimer();
   WorkoutLogic.state.timerSeconds = 0;
